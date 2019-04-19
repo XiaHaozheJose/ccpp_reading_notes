@@ -14,7 +14,7 @@
 
 [05. 指针](./125_Suggestions_Writing_High_Quality_Code_for_c/05/pointer.md)
 
-[06. 数组 与 指针](./125_Suggestions_Writing_High_Quality_Code_for_c/06/array_pointer.md)s
+[06. 数组 与 指针](./125_Suggestions_Writing_High_Quality_Code_for_c/06/array_pointer.md)
 
 
 
