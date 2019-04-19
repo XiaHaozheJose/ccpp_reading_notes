@@ -6,15 +6,17 @@
 
 [01 初识](./125_Suggestions_Writing_High_Quality_Code_for_c/01/initial.md)
 
-[02 数据类型](./125_Suggestions_Writing_High_Quality_Code_for_c/01/data_type.md)
+[02 数据类型](./125_Suggestions_Writing_High_Quality_Code_for_c/02/data_type.md)
 
-[03 表达式](./125_Suggestions_Writing_High_Quality_Code_for_c/02/expression.md)
+[03 表达式](./125_Suggestions_Writing_High_Quality_Code_for_c/03/expression.md)
 
 [04 函数](./125_Suggestions_Writing_High_Quality_Code_for_c/04/function.md)
 
 [05 指针](./125_Suggestions_Writing_High_Quality_Code_for_c/05/pointer.md)
 
 [06 数组 与 指针](./125_Suggestions_Writing_High_Quality_Code_for_c/06/array_pointer.md)
+
+
 
 ### 02. C指针 基本概念 核心技术及最佳实践
 
