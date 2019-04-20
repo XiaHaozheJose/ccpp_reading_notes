@@ -144,9 +144,9 @@
 
 [05 - playbook - 03 - 判断 - test](./ansible/05/03/ansible_playbook.md)
 
-[06 - playbook - 01 - 过滤器](./ansible/06/ansiblele_playbook.md)
+[06 - playbook - 01 - 过滤器](./ansible/06/ansible_playbook.md)
 
-[07 - playbook - 01 - 角色](./ansible/07/ansiblele_playbook.md)
+[07 - playbook - 01 - 角色](./ansible/07/ansible_playbook.md)
 
 
 
