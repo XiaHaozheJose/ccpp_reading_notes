@@ -16,6 +16,12 @@
 
 [06. 数组 与 指针](./125_Suggestions_Writing_High_Quality_Code_for_c/06/array_pointer.md)
 
+[07. 结构体、位域、枚举](./125_Suggestions_Writing_High_Quality_Code_for_c/07/struct.md)
+
+[08. 字符串](./125_Suggestions_Writing_High_Quality_Code_for_c/08/string.md)
+
+[09. 文件系统](./125_Suggestions_Writing_High_Quality_Code_for_c/09/io.md)
+
 
 
 ### 02. C指针 基本概念 核心技术及最佳实践
