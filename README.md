@@ -22,6 +22,10 @@
 
 [09. 文件系统](./125_Suggestions_Writing_High_Quality_Code_for_c/09/io.md)
 
+[10. 预处理](./125_Suggestions_Writing_High_Quality_Code_for_c/10/pre_processing.md)
+
+[11. 断言与异常](./125_Suggestions_Writing_High_Quality_Code_for_c/11/assert.md)
+
 
 
 ### 02. C指针 基本概念 核心技术及最佳实践
