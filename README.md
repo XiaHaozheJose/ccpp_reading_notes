@@ -41,7 +41,7 @@
 
 ### 01. Effective C++:改善程序与设计的55个具体做法(第3版 中文版)
 
-
+[Effective C++](./ccpp_reading_notes/effective_c++/effective.md)
 
 ### 02. More Effective C++  35个改善编程与设计的有效方法
 
