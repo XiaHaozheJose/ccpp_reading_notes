@@ -34,6 +34,9 @@
 
 [02. 指针基础](./c_pointer_best_practices/02/point_basic.md)
 
+[03. 函数指针](./c_pointer_best_practices/03/point_function.md)
+
+
 ## C++
 
 ### 01. Effective C++:改善程序与设计的55个具体做法(第3版 中文版)
