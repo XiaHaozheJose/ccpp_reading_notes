@@ -1038,9 +1038,7 @@ int main(int argc, char const *argv[])
 
 ![](11.png)
 
-
-
-任何形式的改动，都会造成一系列文件 **重新编译** ：
+任何形式的改动，都会造成一系列文件 **重新编译** :
 
 - 1、person.h 文件中 **包含** 进来的 **date.h、address.h** 修改
 - 2、**date.h、address.h** 内部自己依赖的 **其他的 xx.h**
@@ -1078,4 +1076,275 @@ int main(int argc, char const *argv[])
 ![](17.png)
 
 
+
+## 15. is-a 关系，使用【public 继承】
+
+### 1. 不太好的 public 继承
+
+![](18.png)
+
+### 2. 改进后的 继承体系
+
+![](19.png)
+
+### 3. 结论
+
+![](20.png)
+
+
+
+## 16. 不要【覆盖】继承过来的 non-virtual 成员方法
+
+### 1. 默认子类会 覆盖 父类 同名符号
+
+```c++
+#include <iostream>
+using namespace std;
+
+class Father
+{
+public:
+  Father() {}
+  void run(){cout << "Father run" << endl;}
+};
+
+class Son : public Father
+{
+public:
+  Son(){}
+
+  // 子类默认是【覆盖】父类的同名方法实现，而并没有多态的效果
+  void run(){cout << "Son run" << endl;} 
+};
+
+int main()
+{    
+  Father* p = dynamic_cast<Father*>(new Son);//父类类型指针，接收子类对象
+  p->run();
+  delete p;
+}
+```
+
+```
+->  make
+g++ main.cpp
+->  ./a.out
+Father run
+->
+```
+
+### 2. 显示调用父类成员方法
+
+```c
+子类对象.父类::func();
+```
+
+```c++
+#include <iostream>
+using namespace std;
+
+class Father
+{
+public:
+  Father() {}
+  void run(){
+    cout << "Father::run()" << endl;
+  }
+};
+
+class Son : public Father
+{
+public:
+  Son() {}
+  void run(){
+    Father::run();//1. 手动调用父类的同名方法
+    cout << "Son::run()" << endl;//2. 再执行子类自己的覆盖逻辑
+  }
+};
+
+int main(int argc, const char * argv[])
+{    
+  {
+    Son s;
+    s.run();
+    cout << "---------------------" << endl;
+    s.Father::run();
+  }
+}
+```
+
+```
+->  make lan=c++
+g++ main.cpp
+./a.out
+Father::run()
+Son::run()
+---------------------
+Father::run()
+->
+```
+
+
+
+## 17. 不要【覆盖】继承过来的 non-virtual 成员方法的【缺省参数值】
+
+### 1. 父类 virtual 方法带有【缺省参数值】
+
+```c++
+class Shape
+{
+public:
+  enum ShapeColor {Red, Green, Blue};
+
+  virtual drawColor(ShapeColor color = Red) const;
+};
+```
+
+### 2. 错误: 子类 override virtual 方法时【改变】【缺省参数值】
+
+```c++
+class Rectangle : public Shape
+{
+public:
+  // 将方法的【缺省参数值】修改为【Blue】
+  virtual drawColor(ShapeColor color = Blue) const;
+};
+```
+
+
+## 18. 不想 继承 base class 某一个方法
+
+```c++
+#include <iostream>
+#include <string>
+
+class Father
+{
+public:
+  virtual void run() = 0;
+  virtual void sleep() = 0;
+};
+
+class Son : public Father
+{
+public:
+  /**
+   * 不想 继承 base class run()
+   */
+  void run() {
+    Father::run(); // 调用父类的【纯虚方法】，因为【没有实现】，所以会【编译报错】
+  }
+
+  void sleep() {
+    std::cout << "Son sleep" << std::endl;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  Son s; // 这里就会【编译】报错
+}
+```
+
+```c++
+ ~/Desktop/main  g++ main.cpp
+Undefined symbols for architecture x86_64:
+  "Father::run()", referenced from:
+      Son::run() in main-fb919f.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+```
+
+只要 **引用** Son 这个类，就会 **编译** 报错。
+
+
+
+## 19. C++ 中的【接口】
+
+```c++
+class People
+{
+public:
+  // 1、【析构】多态方法
+  virtual ~People() = 0;
+
+  // 2、【功能】多态方法
+  virtual void run() = 0;
+  virtual void sleep() = 0;
+};
+
+// 3、【纯虚析构】方法，必须在【类外】实现
+People::~People(){}
+```
+
+
+
+## 20.【接口 继承】与【实现 继承】
+
+### 1. 非虚函数 (non-virtual)
+
+- 继承【接口】、继承【实现】 
+- 强制提供给【派生类】的方法实现
+- 子类如果出现【同名】方法，则会被【覆盖】，所以【不允许】出现
+- 即 必须使用 **父类** 的方法实现
+
+```c++
+class People
+{
+public:
+  void run(){}
+};
+```
+
+### 2. 虚函数
+
+- 继承【接口】、继承【实现】 
+- **派生类** 可以 **覆写(override)** 做自己的定制实现
+- **派生类** 也可以使用 **默认** 方法实现
+
+```c++
+class People
+{
+public:
+  virtual void run(){}
+};
+```
+
+### 3. 纯虚函数
+
+- 只继承【接口】
+- 派生类 **必须实现** 纯虚函数，否则 **不能实例化**
+
+```c++
+class People
+{
+public:
+  virtual void run() = 0;
+};
+```
+
+### 4. 总结
+
+```c++
+class Shape
+{
+public:
+  // 1、纯虚函数 => 只继承到【接口】
+  virtual void draw() = 0;
+
+  // 2、虚函数 => 继承到【接口】与【默认】【实现】
+  virtual void error(const std::string& err) {
+    std::cout << msg << std::endl;
+  }
+
+  // 3、非虚函数 => 继承到【接口】与【强制】【实现】
+  int objectID() const {
+    return 1;
+  };
+};
+```
+
+
+
+## 21. 多重继承 -- 菱形继承
 
