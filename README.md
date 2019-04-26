@@ -1,5 +1,7 @@
 [TOC]
 
+
+
 ## C
 
 ### 01. 编写高质量代码++改善C程序代码的125个建议
@@ -26,8 +28,6 @@
 
 [11. 断言与异常](./125_Suggestions_Writing_High_Quality_Code_for_c/11/assert.md)
 
-
-
 ### 02. C指针 基本概念 核心技术及最佳实践
 
 [01. 内存](./c_pointer_best_practices/01/memory.md)
@@ -37,15 +37,16 @@
 [03. 函数指针](./c_pointer_best_practices/03/point_function.md)
 
 
+
 ## C++
 
 ### 01. Effective C++:改善程序与设计的55个具体做法(第3版 中文版)
 
 [Effective C++](./ccpp_reading_notes/effective_c++/effective.md)
 
-### 02. More Effective C++  35个改善编程与设计的有效方法
+### 02. More Effective C++ 35个改善编程与设计的有效方法
 
-
+[More Effective C++](./ccpp_reading_notes/more_effective_c++/effective.md)
 
 ### 03. C++代码设计与重用
 
