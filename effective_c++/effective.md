@@ -1348,3 +1348,204 @@ public:
 
 ## 21. 多重继承 -- 菱形继承
 
+### 1. 造成【二义性】错误代码
+
+```c++
+#include <iostream>
+#include <string>
+using namespace std;
+
+class Human
+{
+public:
+  int a;// 4字节
+
+  void run()
+  {
+    cout << "Human" << endl;
+  }
+};
+
+class Woman : public Human
+{
+public:
+  int b; // 4字节
+
+  void run1()
+  {
+    cout << "Woman" << endl;
+  }
+};
+
+class Man : public Human
+{
+public:
+  int c; // 4字节
+
+  void run2()
+  {
+    cout << "Man" << endl;
+  }
+};
+
+class RenYao : public Woman, public Man
+{
+public:
+  int d; // 4字节
+  RenYao(int _d)
+  {
+    d = _d;
+  }
+};
+
+int main()
+{
+  RenYao ry(1);
+  ry.run(); // 编译器不知道从【Women 类】还是从【Man 类】中查找 run()
+}
+```
+
+编译阶段报错
+
+```
+ ~/Desktop/main  g++ -c main.cpp
+main.cpp:51:6: error: non-static member 'run' found in multiple base-class subobjects of type 'Human':
+    class RenYao -> class Woman -> class Human
+    class RenYao -> class Man -> class Human
+  ry.run(); // 编译器不知道从【Women 类】还是从【Man 类】中查找 run()
+     ^
+main.cpp:10:8: note: member found by ambiguous name lookup
+  void run()
+       ^
+1 error generated.
+```
+
+### 2. 【虚继承】解决【二义性】
+
+```c++
+#include <iostream>
+#include <string>
+using namespace std;
+
+class Human
+{
+public:
+  int a;// 4字节
+
+  void run()
+  {
+    cout << "Human" << endl;
+  }
+};
+
+class Woman : virtual public Human
+{
+public:
+  int b; // 4字节
+
+  void run1()
+  {
+    cout << "Woman" << endl;
+  }
+};
+
+class Man : virtual public Human
+{
+public:
+  int c; // 4字节
+
+  void run2()
+  {
+    cout << "Man" << endl;
+  }
+};
+
+class RenYao : public Woman, public Man
+{
+public:
+  int d; // 4字节
+  RenYao(int _d)
+  {
+    d = _d;
+  }
+};
+
+int main()
+{
+  RenYao ry(1);
+  ry.run(); // 编译器不知道从【Women 类】还是从【Man 类】中查找 run()
+}
+```
+
+```
+ ~/Desktop/main  g++ -c main.cpp
+ ~/Desktop/main  g++ main.o
+ ~/Desktop/main  ./a.out
+Human
+```
+
+### 3. 虚继承 与 虚函数
+
+二者 **没有任何** 关系。
+
+
+
+## 22. 虚继承 vs 继承
+
+| 继承                 | 虚继承                        |
+| -------------------- | ----------------------------- |
+| class A : pubic B    | class A : **virtual** pubic B |
+| B **is** A           | B **has** A                   |
+| 编译期 - 代码 - 拷贝 	 | 运行时 - 对象 - 组合          |
+
+
+
+## 23. typename 两种用途
+
+### 1. 指定【参数】是 template 模板参数
+
+![](21.png)
+
+结论: 此时的 class 关键字 与 typename 关键字 完全等价。
+
+- 1、在 **C++ 标准** 还 **没有统一** 时，很多 **旧的编译器**  都是用 **class** 关键字，来声明 **模板参数**
+- 2、因为那时 C++ 并没有 **typename** 关键字
+- 3、一些很早的 C++ 书籍上会告诉注意事项，如果使用 **typename** 时编译器报错的话，那么换成 **class** 即可
+- 4、这里的 class 和 **定义类时** 使用的 class 完全是 **两回事**，C++ 当时就是为了 **减少关键字**，才使用了 **class**
+- 5、但最终却 **不得不** 引入了 **typename**
+
+### 2. 指定为【数据类型】时必须使用 typename
+
+```c++
+template <typename T>
+void print(
+  T x, 
+  typename enable_if<is_integral<T>::value>::type* = 0 // 必须使用 typename 声明 enable_if<is_integral<T>::value>::type 是一个数据类型
+){
+  // ....
+}
+```
+
+
+
+## 24. new_handler
+
+```c++
+void MyOutOfMemory()
+{
+  cout << "Out of memory error!" << endl;
+  abort();
+}
+
+int main()
+{
+  set_new_handler(MyOutOfMemory);
+  int *verybigmemory = new int[0x1fffffff];
+  delete verybigmemory;
+}
+```
+
+- 1) 在 new 之前，设置一个 **callback handler**
+- 2) 当执行 delete 释放对象时，会触发调用 **callback handler**
+
+
