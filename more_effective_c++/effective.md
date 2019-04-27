@@ -404,5 +404,313 @@ int& operator[](int i)
 
 完全去除了我们自己 **取地址** 和 **解引用(反地址)** 的操作，由 C++ 编译器替我们完成。
 
+### 9. 小结
+
+![](01.png)
+
+
+
+## 2. C++ 类型转换
+
+### 1. `static_cast<T>(value)`
+
+#### 1. C
+
+```c++
+int a = 10;
+int b = 3;
+double result = (double)a / (double)b;
+```
+
+#### 2. C++
+
+```c++
+int a = 10;
+int b = 3;
+double result = static_cast<double>(a) / static_cast<double>(b);
+```
+
+**static_cast** 只能对内置的 **基本数据类型** 之间的相互转换。
+
+### 2. `const_cast<T>(value)`
+
+#### 1. C
+
+```c++
+#include <iostream>
+
+int main(int argc, char const *argv[])
+{
+  const int a = 10;
+  const int * p = &a;
+  *p = 20; // error
+}
+```
+
+编译 报错:
+
+```c++
+ ~/Desktop/main  g++ -c main.cpp
+main.cpp:7:6: error: read-only variable is not assignable
+  *p = 20; // error
+  ~~ ^
+1 error generated.
+```
+
+#### 2. C++
+
+```c++
+#include <iostream>
+
+int main(int argc, char const *argv[])
+{
+  const int a = 10;
+  const int* p = &a;
+
+  int* q = const_cast<int*>(p);
+  *q = 20;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+```
+
+- 可以通过 `const_cast<int*>(p)` 去除 `const` 指针的修饰
+- 但是使用 const_cast 通常是一种 **无奈之举**，是一种非常不好的行为
+
+### 3. `reinterpret_cast<T>(value)`
+
+#### 1. C
+
+```c++
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, const char * argv[]) 
+{
+  int *a = malloc(sizeof(int));
+  
+  double *d = (double *)a;
+}
+```
+
+#### 2. C++
+
+```c++
+#include <iostream>
+
+int main(int argc, char const *argv[])
+{
+  int *a = new int;
+  
+  double *d = reinterpret_cast<double *>(a);
+}
+```
+
+- 改变 **指针类型(步长)**
+
+### 4. `dynamic_cast<T>(value)`
+
+#### 1. dynamic_cast 用途
+
+- 1、前面的三种 都是 **编译时** 完成的，**dynamic_cast** 是 **运行时** 进行类型检查
+
+- 2、**不能** 用于 内置的 **基本数据类型** 的强制转换
+
+- 3、dynamic_cast 转换如果成功的话返回的是指向类的 **指针** 或 **引用**，如果 **转换失败**的话则会返回**NULL**
+
+- 4、使用 dynamic_cast 进行转换的，**父类 必须包含 虚函数**，否则 **编译失败** 
+
+- 5、在类的转换时，在类层次间进行上行转换时，dynamic_cast 和 static_cast 的效果是一样的
+- 6、但是在进行下行转换时，**dynamic_cast** 具有类型检查的功能，**比 static_cast 更安全**
+
+#### 2. 各种情况转换
+
+```c++
+#include<iostream>
+using namespace std;
+ 
+class A
+{
+public:
+  virtual void f()
+  {
+    cout << "hello1" << endl;
+  }
+};
+
+class B : public A
+{
+public:
+  void f()
+  {
+    cout << "hello2" << endl;
+  };
+};
+
+class C
+{
+  void pp()
+  {
+    return;
+  }
+};
+
+int main()
+{
+  A* a1 = new B; // a1 是【A类型】的【指针】指向一个【B 类型对象】
+  A* a2 = new A; // a2 是【A类型】的【指针】指向一个【A 类型对象】
+
+  /**
+   * 【B 类型对象】==>【B 类对象】
+   * 结果为 not null，向下转换成功
+   * a1 之前指向的就是【B 类对象】所以可以转换成【B 类型的指针】
+   */
+  B* b = dynamic_cast<B*>(a1);
+  if(b == NULL)
+  {
+    cout << "1. null" << endl;
+  }
+  else
+  {
+    cout << "1. not null" << endl;
+  }
+
+  /**
+   * 【A 类型对象】==>【B 类对象】
+   * 父类 ==> 子类
+   * 结果为 null，向下转换失败
+   */
+  b = dynamic_cast<B*>(a2);
+  if(b == NULL)
+  {
+    cout << "2. null" << endl;
+  }
+  else
+  {
+    cout << "2. not null" << endl;
+  }
+
+  /**
+   * 【B 类型对象】==>【C 类对象】
+   * 两个类没有任何的继承关系，
+   * 结果为 null，向下转换失败
+   */
+  C* c;
+  c = dynamic_cast<C*>(a1);
+  if(c == NULL)
+  {
+    cout << "3. null" << endl;
+  }
+  else
+  {
+    cout << "3. not null" << endl;
+  }
+
+  delete(a1);
+  delete(a2);
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+1. not null
+2. null
+3. null
+```
+
+
+
+## 3. 不能以 ==多态(polymorphically)== 处理 ==数组==
+
+```c++
+#include<iostream>
+using namespace std;
+ 
+class A
+{
+public:
+  virtual void f()
+  {
+    cout << "hello1" << endl;
+  }
+
+  int a;
+};
+
+class B : public A
+{
+public:
+  void f()
+  {
+    cout << "hello2" << endl;
+  };
+
+  void run() 
+  {
+    cout << "run" << endl;
+  }
+
+  int b;
+  int c;
+};
+
+int main()
+{
+  // arr[i] 存放的 B* 内存地址
+  // 那么最终 delete arr[i] 就按照 sizeof(B) 长度进行 释放内存块
+  B** arr = new B*[3];
+
+#if 1
+  arr[0] = dynamic_cast<B*>(new A); // error
+#else
+  arr[0] = new B; // ok
+#endif
+
+  B *b1 = new B;
+  b1->b = 99;
+  b1->c = 100;
+  arr[1] = b1;
+
+  B *b2 = new B;
+  b2->b = 99;
+  b2->c = 100;
+  arr[2] = b2;
+
+  for (int i = 0; i < 3; ++i)
+  {
+    /**
+     * 因为 A 和 B 两个类最终的 size 是不同的，
+     * 所以如果统一按照 sizeof(B) 去寻找 f() 方法的 offset 就会出现问题
+     */
+    arr[i]->f();
+  }
+}
+```
+
+编译、链接 都没问题
+
+```
+ ~/Desktop/main  g++ -c main.cpp
+ ~/Desktop/main  g++ main.o
+ ~/Desktop/main 
+```
+
+运行 崩溃
+
+```c++
+ ~/Desktop/main  ./a.out
+[1]    90844 segmentation fault  ./a.out
+```
+
+
+
+## 4. 非必要 不提供 default constructor
+
 
 
