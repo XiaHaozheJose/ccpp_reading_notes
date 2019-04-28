@@ -48,22 +48,17 @@
 
 [More Effective C++](./more_effective_c++/effective.md)
 
-### 03. C++代码设计与重用
+### 03. EFFECTIVE+STL中文版：50条有效使用STL的经验
 
-
-
-### 04. EFFECTIVE+STL中文版：50条有效使用STL的经验
-
-
+[EFFECTIVE STL](./effective_stl/effective.md)
 
 ### 05. 程序员的自我修养
 
-
+// TODO
 
 ### 06. 高级C/C++编译技术
 
-
-
+// TODO
 
 
 ## iOS

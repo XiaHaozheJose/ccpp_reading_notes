@@ -710,7 +710,652 @@ int main()
 
 
 
-## 4. 非必要 不提供 default constructor
+## 4. explicit 取消对象的【隐式转换】
+
+```c++
+#include<iostream>
+using namespace std;
+
+class Person
+{  
+public:  
+  int _age;  
+  int _size;
+
+  // 使用关键字 explicit 声明修饰【构造方法】  
+  explicit Person(int age, int size = 0)  
+  {  
+    // ....
+  }  
+
+  Person(const char *p)  
+  {  
+    // ....
+  }  
+};
+
+int main(int argc, char const *argv[])
+{
+  Person person1(24);     // 这样是 OK 的
+  Person person2 = 10;    // 这样是不行的, 因为 explicit 关键字【取消】了【隐式转换】
+  Person person3;         // 这样是不行的, 因为没有【默认构造函数】
+  person1 = 2;            // 这样也是不行的, 因为 explicit 关键字【取消】了【隐式转换】
+  person2 = 3;            // 这样也是不行的, 因为 explicit 关键字【取消】了【隐式转换】
+  person3 = person1;      // 这样也是不行的, 因为 explicit 关键字【取消】了【隐式转换】, 除非类实现操作符"="的重载
+}
+```
 
 
 
+## 5. 区别【前置 ++】与【后置 ++】
+
+```c++
+#include<iostream>
+using namespace std;
+
+class Age
+{
+public:
+
+  Age(int _i) {
+    i = _i;
+  }
+
+  // 前置 ++ 运算 , 返回【this 对象】【引用】
+  Age& operator++()
+  {
+    ++i;
+    return *this;
+  }
+
+  // 后置 ++ 运算 , 返回【this 对象】【拷贝】
+  Age operator++(int)
+  {
+    Age tmp = *this;
+    ++(*this);
+    return tmp;
+  }
+
+  int i;
+};
+
+int main(int argc, char const *argv[])
+{
+  Age a(99);
+  std::cout << "1. a.i = " << a.i << std::endl;
+  std::cout << "2. ++a.i = " << ++a.i << std::endl;
+  std::cout << "3. a.i = " << a.i << std::endl;
+  std::cout << "4. a++.i = " << a++.i << std::endl;
+  std::cout << "5. a.i = " << a.i << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+1. a.i = 99
+2. ++a.i = 100
+3. a.i = 100
+4. a++.i = 100
+5. a.i = 101
+```
+
+- 1) `++a` 返回的是 `*this` **引用**
+- 2) `a++` 返回的是 `*this` **拷贝**
+
+
+## 6. 不要重载的 运算符
+
+- 1) `&&`
+- 2) `||`
+- 3) `,`
+
+
+
+## 7. 不同形式的 new 和 delete
+
+### 1. new T 与 delete T
+
+```c++
+#include<iostream>
+using namespace std;
+
+int main(int argc, char const *argv[])
+{
+  int* age = new int;
+  *age = 99;
+  delete age;
+}
+```
+
+### 2. new `T[n]` 与 `delete[]` T
+
+```c++
+#include<iostream>
+using namespace std;
+
+int main(int argc, char const *argv[])
+{
+  int* arr = new int[3];
+  
+  arr[0] = 1;
+  arr[1] = 2;
+  arr[2] = 3;
+
+  delete[] arr;
+}
+
+```
+
+### 3. new T(var1, var2) 与 delete T
+
+```c++
+#include<iostream>
+#include<string>
+using namespace std;
+
+class Person
+{
+public:
+  Person(int _age, std::string _name) {
+    age = _age;
+    _name = name;
+  }
+
+private:
+  int age;
+  std::string name;
+};
+
+int main(int argc, char const *argv[])
+{
+  Person* p = new Person(99, "xiong");
+  delete p;
+}
+```
+
+### 4. new `T*[n]` 与 `delete[]` T
+
+```c++
+#include<iostream>
+#include<string>
+using namespace std;
+
+class Person
+{
+public:
+  Person(int _age, std::string _name) {
+    age = _age;
+    _name = name;
+  }
+
+  ~Person() {
+    std::cout << this << std::endl;
+  }
+
+private:
+  int age;
+  std::string name;
+};
+
+int main(int argc, char const *argv[])
+{
+  // 1. 相当于 Person* arr[3] ，但实际是一个【指针变量】
+  Person** ptr = new Person*[3];
+  
+  // 2. arr[i] = new Person(age, name)
+  ptr[0] = new Person(99, "xiong01");
+  ptr[1] = new Person(100, "xiong02");
+  ptr[2] = new Person(101, "xiong03");
+  
+  // 3. delete arr[i]
+  for (int i = 0; i < 3; ++i)
+  {
+    delete ptr[i];
+  }
+
+  // 4. delete arr
+  delete[] ptr;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+0x7fb775c02ca0
+0x7fb775c02cc0
+0x7fb775c02ce0
+```
+
+连续释放 **3个** 对象。
+
+
+
+## 8. exceptions
+
+### 1. 被抛出的对象总是一个【副本】
+
+```c++
+#include<iostream>
+#include<string>
+#include<cstdio>
+#include <exception>
+
+using namespace std;
+
+struct MyException : public exception
+{
+  const char * what () const throw ()
+  {
+    return "C++ Exception";
+  }
+};
+
+void func1() {
+  // 局部对象
+  MyException exception;
+
+  // cout << "func1(): " << &exception << endl;
+  printf("func1(): %p\n", &exception);
+
+  // 抛出的对象是一个副本
+	// 当前作用域的 exception 在离开本函数时已经被销毁
+  throw exception;
+}
+
+void func2() {
+  // 虽然是 static 静态变量
+  static MyException exception;
+  
+  // cout << "func2(): " << &exception << endl;
+  printf("func2(): %p\n", &exception);
+
+  // 尽管本函数内的 exception 不会被销毁，但是抛出的 exception 依然是一个副本
+  throw exception;
+}
+
+int main(int argc, char const *argv[])
+{
+  try {
+    func1(); 
+  } catch(MyException& e) {
+    // cout << "catch: " << &e << endl;
+    printf("catch1: %p\n", &e);
+  } catch(std::exception& e)
+  {
+    //其他的错误
+  }
+
+  cout << "---------------------------" << endl;
+
+  try {
+    func2(); 
+  } catch(MyException& e) {
+    // cout << "catch: " << &e << endl;
+    printf("catch2: %p\n", &e);
+  } catch(std::exception& e)
+  {
+    //其他的错误
+  }
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+func1(): 0x7ffee63cf0b8
+catch1: 0x7f8e91402d00
+---------------------------
+func2(): 0x109832180
+catch2: 0x7f8e91402d00
+```
+
+两次 catch 块捕获的 exception 对象的 **内存地址** 都是 **不同** 的。
+
+### 2. catch 效率
+
+#### 1. catch(T t)
+
+- 抛出的 **异常对象**，会被 **复制两次**
+- 第一次 是在 **throw** 时
+- 第二次 是在 **catch** 时
+
+#### 2. catch(T& t)
+
+- 只会在 第一次 是在 **throw** 时 **复制一次**
+
+#### 3. catch(const T& t)
+
+- 只会在 第一次 是在 **throw** 时 **复制一次**
+- 并且 **不允许修改** 异常对象
+
+### 3. catch(`T*` t)
+
+#### 1. throw new T
+
+```c++
+#include<iostream>
+#include<string>
+#include<cstdio>
+#include <exception>
+
+using namespace std;
+
+struct MyException : public exception
+{
+  const char * what () const throw ()
+  {
+    return "C++ Exception";
+  }
+};
+
+void func() {
+  throw new MyException;
+}
+
+int main(int argc, char const *argv[])
+{
+  try {
+    func(); 
+  } catch(MyException* e) {
+    std::cout << e->what() << std::endl;
+  } catch(std::exception& e)
+  {
+    //其他的错误
+  }
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+C++ Exception
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+C++ Exception
+```
+
+ok
+
+#### 2. throw `&局部对象`
+
+```c++
+#include<iostream>
+#include<string>
+#include<cstdio>
+#include <exception>
+
+using namespace std;
+
+struct MyException : public exception
+{
+  const char * what () const throw ()
+  {
+    return "C++ Exception";
+  }
+};
+
+void func() {
+  // 局部的内存
+  MyException exception;
+
+  // 抛出【局部内存】的【内存地址】
+  // 实际上只是复制【局部对象】所在的【内存地址值】
+  // 而不是复制【局部对象】
+  throw &exception;
+}
+
+int main(int argc, char const *argv[])
+{
+  try {
+    func(); 
+  } catch(MyException* e) {
+    std::cout << e->what() << std::endl;
+  } catch(std::exception& e)
+  {
+    //其他的错误
+  }
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+make: *** [all] Segmentation fault: 11
+```
+
+- **崩溃**
+- 因为抛出了一个指向 **局部内存** 的内存地址
+- 而局部内存出了方法作用域时，就会被 **回收**
+
+### 4. catch `void*` 优先级【最高】
+
+```c++
+#include<iostream>
+#include<string>
+#include<cstdio>
+#include <exception>
+
+using namespace std;
+
+class BaseClass {
+};
+
+class DerivedClass : public BaseClass {
+};
+
+void func1() {
+  static DerivedClass derived;
+  throw &derived;
+}
+
+void func2() {
+  throw new BaseClass;
+}
+
+void func3() {
+  throw new DerivedClass;
+}
+
+int main(int argc, char const *argv[])
+{
+  try {
+    func1();
+  } catch (void* e) { // 优先捕获，因此void*是所有类型的基类指针
+    std::cout << "catch: void*" << std::endl;
+  } catch (BaseClass* e) {
+    std::cout << "catch: BaseClass*" << std::endl;
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  }
+
+  try {
+    func2();
+  } catch (void* e) { // 优先捕获，因此void*是所有类型的基类指针
+    std::cout << "catch: void*" << std::endl;
+  } catch (BaseClass* e) {
+    std::cout << "catch: BaseClass*" << std::endl;
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  }
+
+  try {
+    func3();
+  } catch (void* e) { // 优先捕获，因此void*是所有类型的基类指针
+    std::cout << "catch: void*" << std::endl;
+  } catch (BaseClass* e) {
+    std::cout << "catch: BaseClass*" << std::endl;
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  }
+}
+```
+
+```
+catch: void*
+catch: void*
+catch: void*
+```
+
+最终都是以 `void*` 形式的异常进行捕捉。
+
+### 5. catch `base*` > catch `DerivedClass*`
+
+```c++
+#include<iostream>
+#include<string>
+#include<cstdio>
+#include <exception>
+
+using namespace std;
+
+class BaseClass {
+};
+
+class DerivedClass : public BaseClass {
+};
+
+void func1() {
+  static DerivedClass derived;
+  throw &derived;
+}
+
+void func2() {
+  throw new BaseClass;
+}
+
+void func3() {
+  throw new DerivedClass;
+}
+
+int main(int argc, char const *argv[])
+{
+  try {
+    func1();
+  // } catch (void* e) { // 优先捕获，因此void*是所有类型的基类指针
+  //   std::cout << "catch: void*" << std::endl;
+  } catch (BaseClass* e) {
+    std::cout << "catch: BaseClass*" << std::endl;
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  }
+
+  try {
+    func2();
+  // } catch (void* e) { // 优先捕获，因此void*是所有类型的基类指针
+  //   std::cout << "catch: void*" << std::endl;
+  } catch (BaseClass* e) {
+    std::cout << "catch: BaseClass*" << std::endl;
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  }
+
+  try {
+    func3();
+  // } catch (void* e) { // 优先捕获，因此void*是所有类型的基类指针
+  //   std::cout << "catch: void*" << std::endl;
+  } catch (BaseClass* e) {
+    std::cout << "catch: BaseClass*" << std::endl;
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  }
+}
+```
+
+```
+catch: BaseClass*
+catch: BaseClass*
+catch: BaseClass*
+```
+
+### 6. catch `T*` 与 catch `T&`
+
+```c++
+#include<iostream>
+#include<string>
+#include<cstdio>
+#include <exception>
+
+using namespace std;
+
+class BaseClass {
+};
+
+class DerivedClass : public BaseClass {
+};
+
+void func1() {
+  static DerivedClass derived;
+  throw &derived;  // throw T*
+}
+
+void func2() {
+  DerivedClass exception;
+  throw exception; // throw T&
+}
+
+int main(int argc, char const *argv[])
+{
+  try {
+    func1();
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  } catch (DerivedClass& e) {
+    std::cout << "catch: DerivedClass&" << std::endl;
+  }
+
+  try {
+    func2();
+  } catch (DerivedClass* e) {
+    std::cout << "catch: DerivedClass*" << std::endl;
+  } catch (DerivedClass& e) {
+    std::cout << "catch: DerivedClass&" << std::endl;
+  }
+}
+```
+
+```
+catch: DerivedClass*
+catch: DerivedClass&
+```
+
+### 7. 指定 方法或函数 可抛出的异常列表
+
+#### 1. void fun()
+
+可以抛出 **任何类型** 的异常
+
+#### 2. void fun() throw(except1,except2,except3)
+
+- 后面 **括号里面** 是一个 **异常参数表**
+- 表示该方法 fun() **只能抛出这3种** 求中的一种异常
+
+#### 3. void fun() throw()
+
+- 参数表为空
+- 表示该方法 **不能抛出** 异常
+
+
+
+## 9. 虚函数表(vtbl) -- 实现对象的多态
+
+![](02.png)
+
+
+
+## 10. 虚函数、多重继承、虚继承、RTTI 使用成本对比
+
+![](03.png)
+
+
+
+看起来 **RTTI**  并不会降低程序的性能。
