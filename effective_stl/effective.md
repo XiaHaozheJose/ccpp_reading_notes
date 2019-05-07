@@ -235,7 +235,1116 @@ In file included from main.cpp:3:
 
 
 
-## 4. STL 容器默认存储 元素 的 ==浅拷贝==
+## 4. STL 容器 默认存储元素的 ==浅拷贝==
+
+### 1. STL 容器 默认存储【对象 -- 拷贝】
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class person
+{
+private:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    cout << "person(int _pid, char* _name): " << this << endl;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    cout << "person(const person& other): " << this << endl;
+  }
+  
+  // 析构
+  ~person()
+  {
+    cout << "~person(): " << this << endl;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  std::vector<person> pv;
+  
+  cout << "--------------------1--------------------" << endl;
+
+  person p1(99, "xiong"); // 第一个 person 对象: 创建了一个【局部】person 对象
+
+  cout << "--------------------2--------------------" << endl;
+
+  pv.push_back(p1); // 第二个 person 对象: vector 最终存储的是【局部】person 对象的【拷贝】
+
+  cout << "--------------------3--------------------" << endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+--------------------1--------------------
+person(int _pid, char* _name): 0x7ffedfda7ea8
+--------------------2--------------------
+person(const person& other): 0x7f9cf7402c80
+--------------------3--------------------
+~person(): 0x7ffedfda7ea8
+~person(): 0x7f9cf7402c80
+```
+
+所以一共出现了 **2个**  person 对象.
+
+### 2. 指定默认存储【对象 -- 内存地址】
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class person
+{
+private:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    cout << "person(int _pid, char* _name): " << this << endl;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    cout << "person(const person& other): " << this << endl;
+  }
+  
+  // 析构
+  ~person()
+  {
+    cout << "~person(): " << this << endl;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  std::vector<person*> pv; // 指定 vector[i] 类型是 `person*` 指针类型
+   
+  cout << "--------------------1--------------------" << endl;
+
+  person p1(99, "xiong");
+
+  cout << "--------------------2--------------------" << endl;
+
+  pv.push_back(&p1); // 存储 局部对象 的【内存地址】
+
+  cout << "--------------------3--------------------" << endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+--------------------1--------------------
+person(int _pid, char* _name): 0x7ffee4122ea8
+--------------------2--------------------
+--------------------3--------------------
+~person(): 0x7ffee4122ea8
+```
+
+这次可以看到只创建 **1个** person 对象.
+
+### 3. boost::ptr_vector 【内存地址】容器
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <boost/ptr_container/ptr_vector.hpp>
+
+using namespace std;
+
+class person
+{
+private:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    cout << "person(int _pid, char* _name): " << this << endl;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    cout << "person(const person& other): " << this << endl;
+  }
+  
+  // 析构
+  ~person()
+  {
+    cout << "~person(): " << this << endl;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  boost::ptr_vector<person> pv; // 指定 vector[i] 类型是 `person*` 指针类型
+   
+  cout << "--------------------1--------------------" << endl;
+
+#if 0
+  person p1(99, "xiong");
+
+  // 会导致崩溃，因为最终 boost:ptr_vector 会对内部的内存地址执行 delete 释放操作
+  // ----------------------------------------------------------------------------
+  // a.out(5790,0x10d3955c0) malloc: *** error for object 0x7ffee9488fe8: pointer being freed was not allocated
+  // a.out(5790,0x10d3955c0) malloc: *** set a breakpoint in malloc_error_break to debug
+  // make: *** [all] Abort trap: 6
+  // ----------------------------------------------------------------------------
+  pv.push_back(&p1); // 存储 局部对象 的【内存地址】
+#endif
+
+  cout << "--------------------2--------------------" << endl;
+
+  pv.push_back(new person(99, "xiong")); // 存储 局部对象 的【内存地址】
+
+  cout << "--------------------3--------------------" << endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11 boost=yes
+g++ main.cpp  -std=c++11 -I/usr/xiong/include/ -L/usr/xiong/lib/ -lboost_system -lboost_program_options -lboost_signals -lboost_thread -lboost_atomic -lboost_iostreams -lboost_exception -lboost_serialization -lstdc++
+./a.out
+--------------------1--------------------
+--------------------2--------------------
+person(int _pid, char* _name): 0x7f8008402ea0
+--------------------3--------------------
+~person(): 0x7f8008402ea0
+```
+
+- 同样只会创建 **1个** person 对象
+- 而且 **boost:ptr_vector** 容器在自己释放时，会自动对 **内部的内存地址** 执行 **delete** 释放操作
+
+
+
+## 5. 使用 empty() 判断容器 ==是否空==
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class person
+{
+private:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    // cout << "person(int _pid, char* _name): " << this << endl;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    // cout << "person(const person& other): " << this << endl;
+  }
+  
+  // 析构
+  ~person()
+  {
+    // cout << "~person(): " << this << endl;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  std::vector<person> pv;
+  cout << pv.empty() << endl;
+  
+
+  person p1(99, "xiong"); // 第一个 person 对象: 创建了一个【局部】person 对象
+  pv.push_back(p1); // 第二个 person 对象: vector 最终存储的是【局部】person 对象的【拷贝】
+  cout << pv.empty() << endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+./a.out
+1
+0
+```
+
+
+
+## 6. STL 容器 不要包含 std::auto_ptr 对象
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <memory>
+
+using namespace std;
+
+class person
+{
+private:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    cout << "person(int _pid, char* _name): " << this << endl;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    cout << "person(const person& other): " << this << endl;
+  }
+  
+  // 析构
+  ~person()
+  {
+    cout << "~person(): " << this << endl;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  // 1.
+  std::auto_ptr<person> p1(new person(99, "xiong"));
+  
+  // 2.
+  cout << "1. p1.get(): " << p1.get() << endl;
+
+  // 3. 转移 auto_ptr 内部对 内存地址 控制权
+  std::auto_ptr<person> p2 = p1;
+
+  // 4.
+  cout << "2. p1.get(): " << p1.get() << endl;
+  cout << "3. p2.get(): " << p2.get() << endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++
+g++ main.cpp
+-----------------------------------------
+./a.out
+person(int _pid, char* _name): 0x7ffc07402c80
+1. p1.get(): 0x7ffc07402c80
+2. p1.get(): 0x0
+3. p2.get(): 0x7ffc07402c80
+~person(): 0x7ffc07402c80
+-----------------------------------------
+```
+
+- 当执行完 `p2 = p1` 后，会 **转移** auto_ptr 内部的 内存地址 控制权
+- 那么 **被拷贝** 的 **auto_ptr 对象** 内部的 内存地址 就会变为 **0x0** 清零
+- 而 **STL容器** 默认对存储的元素执行 **浅拷贝**
+- 所以一旦触发 **auto_ptr 对象拷贝** ，就会导致当前的 **auto_ptr 对象** 内部的 内存地址 清零为 **0x0** 
+
+
+
+## 7. allocator
+
+### 1. C++ 存在 两种方式 创建对象，为其分配内存
+
+- 1) 通过 **构造函数** 构造一个类对象. (如 `Test test()` )
+- 2) 通过 **new** 实例化一个类对象. (如 `Test *pTest = new Test` )
+
+### 2. 内存的分配 ==区域==
+
+#### 1. 静态存储区
+
+- 1) 内存在程序 **编译期** 已经分配好 (大小确认、存储位置确认)
+- 2) 这块内存在程序的整个运行空间内都存在
+- 3) 主要是: 全局变量、静态变量(static 修饰的全局变量)
+
+#### 2. 栈
+
+- 1) 内存在程序 **运行时** 初始化 **栈** 之后，才会进行分配
+- 2) **函数内** 的 **局部变量** 通过栈空间来分配存储(函数调用栈)
+- 3) 当 **函数执行完毕返回** 时, 相对应的栈空间被立即回收
+
+#### 3. 堆
+
+- 1) 内存在程序 **运行时** 初始化 **堆** 之后，才会进行分配
+- 2) 通过 **malloc** 和 **new** 创建的对象都是从堆空间分配内存
+- 3) 这类空间需要 **程序员自己** 通过 **free()** 或者是 **delete** 进行释放,否则会造成内存溢出
+
+### 3. SGI STL 将对象的 ==构造== 切分成 ==空间分配== 和 ==对象构造== 两部分
+
+![](02.png)
+
+### 4. 实现细化为 4 部分
+
+| target | 内存        | 对应实现              |
+| ------ | ----------- | --------------------- |
+| 内存   | 分配        | `alloc::allocate()`   |
+| 内存   | 释放        | `alloc::deallocate()` |
+| 对象   | 构造        | `::construct()`       |
+| 对象   | 释放 (析构) | `::destroy()`         |
+
+### 5. free_list 记录 ==空闲的内存块== 链表
+
+![](Snip20190429_17.png)
+
+### 6. 从 free_list ==取出== 内存块 (==申请== 内存)
+
+![](Snip20190429_18.png)
+
+简单角度来看，就是修改 **链表** 节点的 next 指针域.
+
+
+### 7. 将 内存块 ==放回== free_list  (==释放== 内存)
+
+![](Snip20190429_19.png)
+
+
+
+## 8. STL 容器 线程安全
+
+### 1. 对于 ==只读== 容器: 线程安全
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <vector>
+#include <memory>
+// #include <thread>
+#include <boost/thread.hpp>
+#include <unistd.h>
+
+using namespace std;
+
+class person
+{
+private:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    // cout << "person(int _pid, char* _name): " << this << endl;
+    pid = _pid;
+    name = _name;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    // cout << "person(const person& other): " << this << endl;
+    pid = other.pid;
+    name = other.name;
+  }
+  
+  // 析构
+  ~person()
+  {
+    // cout << "~person(): " << this << endl;
+  }
+
+  // 外部【全局函数】作为【person 类】的【友元】
+  friend std::ostream& operator<<(std::ostream& os, const person* d);
+};
+
+std::ostream& operator<<(std::ostream& os, const person* p) {
+  std::cout << "pid = " << p->pid << ", name = " << p->name ;
+  return os;
+}
+
+void output(int i, const std::vector<person*>& v)
+{
+  std::cout << v[i] << std::endl;
+}
+
+int main(int argc, char const *argv[])
+{
+  std::vector<person*> v;
+  v.push_back(new person(100, "xiong-001"));
+  v.push_back(new person(100, "xiong-002"));
+  v.push_back(new person(102, "xiong-003"));
+
+  for (uint8_t i = 0; i < 3; i++)
+  {
+    // std::cout << v[i] << std::endl;
+    boost::thread t(output, i, v);
+    t.detach(); 
+  }
+    
+  // getchar();
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11 boost=yes
+g++ main.cpp  -std=c++11 -I/usr/xiong/include/ -L/usr/xiong/lib/ -lboost_system -lboost_program_options -lboost_signals -lboost_thread -lboost_atomic -lboost_iostreams -lboost_exception -lboost_serialization -lstdc++
+-----------------------------------------
+./a.out
+pid = 100, name = xiong-001
+pid = 100, name = xiong-002
+pid = 102, name = xiong-003
+-----------------------------------------
+```
+
+因为就只是 **读** 操作，就是一百万个线程同时 **读** ，也是不存在任何线程安全问题的。
+
+### 2. 对于 ==读 + 写== 容器: 则必定存在线程安全问题，必须保证 ==串行== 执行
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <vector>
+#include <memory>
+// #include <thread>
+#include <boost/thread.hpp>
+#include <mutex>
+
+using namespace std;
+
+class person
+{
+// private:
+public:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    // cout << "person(int _pid, char* _name): " << this << endl;
+    pid = _pid;
+    name = _name;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    // cout << "person(const person& other): " << this << endl;
+    pid = other.pid;
+    name = other.name;
+  }
+  
+  // 析构
+  ~person()
+  {
+    // cout << "~person(): " << this << endl;
+  }
+
+  // 外部【全局函数】作为【person 类】的【友元】
+  friend std::ostream& operator<<(std::ostream& os, const person* d);
+};
+
+std::ostream& operator<<(std::ostream& os, const person* p) {
+  std::cout << "pid = " << p->pid << ", name = " << p->name ;
+  return os;
+}
+
+static std::mutex m;
+void output(int i, const std::vector<person*>& v)
+{
+#if 0
+  lock.lock();
+  v[i]->pid = rand() % 100;
+  lock.unlock();
+#else
+  if (m.try_lock()) {
+    v[i]->pid = rand() % 100;
+    m.unlock();
+  }
+#endif
+}
+
+int main(int argc, char const *argv[])
+{
+  std::vector<person*> v;
+  v.push_back(new person(100, "xiong-001"));
+  v.push_back(new person(100, "xiong-002"));
+  v.push_back(new person(102, "xiong-003"));
+
+  for (uint8_t i = 0; i < 3; i++)
+  {
+    // std::cout << v[i] << std::endl;
+    boost::thread t(output, i, v);
+    t.detach(); 
+  }
+    
+  // getchar();
+}
+```
+
+
+
+## 9. C++ vector 传递给 C
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <vector>
+#include <memory>
+
+using namespace std;
+
+class person
+{
+// private:
+public:
+  int pid;
+  std::string name;
+
+public:
+  
+  // 构造
+  person(int _pid, std::string _name)
+  {
+    // cout << "person(int _pid, char* _name): " << this << endl;
+    pid = _pid;
+    name = _name;
+  }
+
+  // 拷贝构造
+  person(const person& other) 
+  {
+    // cout << "person(const person& other): " << this << endl;
+    pid = other.pid;
+    name = other.name;
+  }
+  
+  // 析构
+  ~person()
+  {
+    // cout << "~person(): " << this << endl;
+  }
+};
+
+void func(person** ps, int size)
+{
+  for (int i = 0; i < size; ++i)
+  {
+    std::cout << "pid = " << ps[i]->pid << ", name = " << ps[i]->name << std::endl;
+  }
+}
+
+int main(int argc, char const *argv[])
+{
+  std::vector<person*> v;
+  v.push_back(new person(100, "xiong-001"));
+  v.push_back(new person(100, "xiong-002"));
+  v.push_back(new person(102, "xiong-003"));
+
+  func(&v[0], v.size());
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+pid = 100, name = xiong-001
+pid = 100, name = xiong-002
+pid = 102, name = xiong-003
+-----------------------------------------
+```
+
+
+
+## 10. 不使用 `std::vector<bool>`
+
+- `std::vector<bool>` 其内部元素实际上并 **不是 标准的 bool 值**
+
+- 标准的 bool 值至少与 char 拥有一样的大小
+
+- 然而 C++ 标准对于 `vector<bool>` 值有其 **特殊** 的优化，目的是为了减小空间的耗用
+  - 内部只使用一个 **bit** 来存储一个元素
+  - 所以通常要比一般的 bool 值 小8倍 之多
+
+- C++ 的 **最小可寻址值** 通常以 **byte** 为单位，所以 `vector<bool>` 特殊版本的 references 和 iterators 经过了特殊的处理，并不是 bool 值的 实际地址，而是一个 **代理对象**
+
+  ```++
+  std::vector<bool> v;
+  bool* p = &v.front; // 不能这么使用
+  ```
+
+- 由于 `vector<bool>` 通过 **代理对象** 进行存取访问时需要执行逐位处理，**访问速度** 通常比 **int** 之类的普通类型操作要 **慢很多**
+
+- 如果一定要使用，则建议使用 `deque<bool>` 来取代 `vector<bool>`，功能基本相同，但 `deque<bool>` **没有对** 其进行特殊处理
+
+
+
+## 11. `std::set<T*>` 内存地址 类型的 元素
+
+### 1. 
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <set>
+
+int main(int argc, char const *argv[])
+{
+  std::set<std::string*> v;
+  v.insert(new std::string("111"));
+  v.insert(new std::string("222"));
+  v.insert(new std::string("333"));
+
+  for (std::set<std::string*>::const_iterator it = v.begin(); it != v.end(); ++it)
+  {
+    std::cout << *it << std::endl;
+  } 
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+0x7fbc93402c80
+0x7fbc93402cd0
+0x7fbc93402d20
+-----------------------------------------
+```
+
+- 打印的并不是 **字符串** , 而是 16进制 **内存地址值**
+- `std::set<T*>::iterator` 迭代器 指向的数据类型为 `T**` 内存地址值
+
+### 2. 打印 内存地址 中的 数据
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <set>
+#include <algorithm>
+
+int main(int argc, char const *argv[])
+{
+  std::set<std::string*> v;
+  v.insert(new std::string("111"));
+  v.insert(new std::string("222"));
+  v.insert(new std::string("333"));
+
+  for (std::set<std::string*>::const_iterator it = v.begin(); it != v.end(); ++it)
+  {
+    std::cout << *(*it) << std::endl;
+  }
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+111
+222
+333
+-----------------------------------------
+```
+
+- `std::set<T*>::iterator` 迭代器 指向的数据类型为 `T**` 内存地址值
+- `*it` 返回的 `T*` 
+- `*(*it)` 返回的 `T` 
+
+
+
+## 12. 禁止直接修改 set、multiset/map、multumap 中的元素的 key 值
+
+### 1. set、multiset 内部元素都是 ==有序==
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <set>
+#include <iostream>
+
+template<typename T>
+std::ostream& operator<<(std::ostream& s, const std::set<T>& v) {
+  s.put('[');
+  char split[3] = {'\0', ' ', '\0'};
+  for (const auto& e : v) 
+  {
+    s << split << e;
+    split[0] = ',';
+  }
+  return s << ']';
+}
+
+void func()
+{
+  std::set<int, std::less<int>> s;
+
+  s.insert(10);
+  s.insert(1);
+  s.insert(5);
+  s.insert(3);
+  s.insert(99);
+
+  std::cout << s << std::endl;
+}
+
+int main(int argc, char const *argv[])
+{
+  // 触发 10 次 set 插入元素
+  for (int i = 0; i < 10; ++i)
+  {
+    func();
+  }
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+[1, 3, 5, 10, 99]
+-----------------------------------------
+```
+
+- 触发 10 次 set 插入元素
+- 每次插入完毕，都遍历打印 set 中的元素
+- 10 次 set 内部元素 打印结果，都是 **1, 3, 5, 10, 99** 有序排列
+
+### 2. map、multumap 内部元素的 ==key== 也是 ==有序==
+
+...
+
+### 3. 不能修改 set 内部元素的 key
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <set>
+#include <iostream>
+
+template<typename T>
+std::ostream& operator<<(std::ostream& s, const std::set<T>& v) {
+  s.put('[');
+  char split[3] = {'\0', ' ', '\0'};
+  for (const auto& e : v) 
+  {
+    s << split << e;
+    split[0] = ',';
+  }
+  return s << ']';
+}
+
+void func()
+{
+  // 1. 构造 set 
+  std::set<int, std::less<int>> s;
+  s.insert(10);
+  s.insert(1);
+  s.insert(5);
+  s.insert(3);
+  s.insert(99);
+  std::cout << s << std::endl;
+
+  // 2. 从 set 中查询到 元素
+  auto it = s.find(5);
+
+  // 3. find(key) 
+  // - 1) 返回值类型是 std::set<T>::const_iterator 【不可修改元素】类型的【迭代器】对象，而【不是】直接返回的【素值】
+  // - 2) 所以【无法】也【不能】【修改】set【内部元素】
+  // - 3) 修改会【编译报错】，且 set 也【没有提供】【修改元素】的成员方法
+  std::cout << (*it) << '\n';
+
+  // 4. 会编译报错
+#if 0
+  *it = 6;
+  std::cout << (*it) << '\n';
+#endif
+}
+
+int main(int argc, char const *argv[])
+{
+  func();
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+[1, 3, 5, 10, 99]
+5
+-----------------------------------------
+```
+
+而如果打开 **4.** 注释的 修改 set 内部元素的代码，则会在 **g++ main.cpp** 时产生 **编译报错** :
+
+```c++
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+main.cpp:41:7: error: cannot assign to return value because function 'operator*' returns a const value
+  *it = 6;
+  ~~~ ^
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__tree:913:31: note: function 'operator*' which
+      returns const-qualified type 'std::__1::__tree_const_iterator<int, std::__1::__tree_node<int, void *> *, long>::reference' (aka 'const int &')
+      declared here
+    _LIBCPP_INLINE_VISIBILITY reference operator*() const
+                              ^~~~~~~~~
+1 error generated.
+make: *** [all] Error 1
+```
+
+核心提示:
+
+```
+error: cannot assign to return value because function 'operator*' returns a const value
+  *it = 6;
+```
+
+- 1) function 'operator*' returns a **const value**
+- 2) 所以 `*it = 6` 会编译报错
+
+### 4. 同样不能修改 map 内部元素的 key
+
+```c++
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <map>
+
+int main(int argc, char const *argv[])
+{
+  // 1. 构造 map
+  std::map<int, std::string> map {
+    {1, "name 01"},
+    {2, "name 02"},
+    {3, "name 03"}
+  };
+  map.insert(std::make_pair(4, "name 04"));
+
+  // 2. 查找 key 对应的 pair , 返回的是 iterator 迭代器对象
+  auto it = map.find(2);
+
+  // 3. 通过 iterator 迭代器对象，读取 pair->first
+  std::cout << "it->first = " << it->first << std::endl;
+
+  // 4. 通过 iterator 迭代器对象，读取 pair->second
+  std::cout << "it->second = " << it->second << std::endl;
+
+  // 5. 修改 pair->first
+#if 1
+  it->first = 5; // 编译报错
+#endif
+}
+```
+
+```c++
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+main.cpp:27:13: error: cannot assign to non-static data member 'first' with const-qualified type 'const int'
+  it->first = 5;
+  ~~~~~~~~~ ^
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/utility:320:9: note: non-static data member 'first'
+      declared const here
+    _T1 first;
+    ~~~~^~~~~
+1 error generated.
+make: *** [all] Error 1
+```
+
+编译报错 核心提示:
+
+```
+error: cannot assign to non-static data member 'first' with const-qualified type 'const int'
+  it->first = 5;
+  ~~~~~~~~~ ^
+```
+
+pair 的 first 成员变量是 **const int** ，所以 **不允许对齐修改**。
+
+### 5. 修改 set 中的元素
+
+![](Snip20190507_20.png)
+
+- 1) find() 找到待修改的元素的 iterator 对象
+- 2) 拷贝 iterator 对象指向的 元素对象
+- 3) 删除 iterator 对象指向的 元素对象
+- 4) 插入 拷贝后的 元素对象
+
+### 6. 一边【遍历】元素，一边【删除】元素
+
+#### 1. 
+
+```c++
+#include <iostream>
+#include <map>
+
+int main() 
+{
+  std::map<int, std::string> c = {
+    {1, "one"}, 
+    {2, "two"}, 
+    {3, "three"},
+    {4, "four"}, 
+    {5, "five"}, 
+    {6, "six"}
+  };
+
+  for(auto& p : c)
+    std::cout << p.second << ' ';
+  std::cout << "\n";
+
+  // erase all odd numbers from c
+  for(auto it = c.begin(); it != c.end();) 
+  {
+    if(it->first % 2 == 1) 
+    {
+      /**
+       *【方式1】先删除迭代器【当前位置】上的元素，再让【迭代器 ++】往下走
+       */
+      c.erase(it++);
+    }
+    else 
+    {
+      ++it;
+    }
+  }
+
+  for(auto& p : c)
+    std::cout << p.second << ' ';
+  std::cout << "\n";
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+one two three four five six
+two four six
+-----------------------------------------
+```
+
+#### 2. 
+
+```c++
+#include <iostream>
+#include <map>
+
+int main() 
+{
+  std::map<int, std::string> c = {
+    {1, "one"}, 
+    {2, "two"}, 
+    {3, "three"},
+    {4, "four"}, 
+    {5, "five"}, 
+    {6, "six"}
+  };
+
+  for(auto& p : c)
+    std::cout << p.second << ' ';
+  std::cout << "\n";
+
+  // erase all odd numbers from c
+  for(auto it = c.begin(); it != c.end();) 
+  {
+    if(it->first % 2 == 1) 
+    {
+      /**
+       *【方式2】【保存】保存删除之后，【容器返回】的【下一个有效位置】的【迭代器】对象
+       */
+      it = c.erase(it);
+    }
+    else 
+    {
+      ++it;
+    }
+  }
+
+  for(auto& p : c)
+    std::cout << p.second << ' ';
+  std::cout << "\n";
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+one two three four five six
+two four six
+-----------------------------------------
+```
+
+
+
+## 13. iterator 转换关系
+
+![](Snip20190507_21.png)
+
+
+
+## 14. iterator 与 const_iterator 进行比较
+
+
 
 
 
