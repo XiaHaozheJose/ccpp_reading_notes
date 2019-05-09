@@ -2,7 +2,7 @@
 
 
 
-## C
+## 01. C
 
 ### 01. 编写高质量代码++改善C程序代码的125个建议
 
@@ -38,21 +38,42 @@
 
 
 
-## C++
+## 02. C++
 
-- [Effective C++:改善程序与设计的55个具体做法(第3版 中文版)](./effective_c++/effective.md)
+### 01. Effective C++: 改善程序与设计的55个具体做法(第3版)
 
-- [More Effective C++ 35个改善编程与设计的有效方法](./more_effective_c++/effective.md)
+- [README](./effective_c++/effective.md)
 
-- [EFFECTIVE+STL中文版：50条有效使用STL的经验](./effective_stl/effective.md)
+### 02. More Effective C++: 35个改善编程与设计的有效方法
+
+- [README](./more_effective_c++/effective.md)
+
+### 03. EFFECTIVE+STL: 50条有效使用STL的经验
+
+- [README](./effective_stl/effective.md)
 
 
 
-## Compile
+## 03. Compile
 
-### 01. 程序员的自我修养—链接、装载与库
+### 01. 程序员的自我修养—链接、装载与库 ==[X]==
 
-- [](./compile/01/README.md)
+- [01 - 温故而知新](./compile/01/01/README.md)
+
+- [02 - 静态链接 - 01 - 编译与链接](./compile/01/02/README.md)
+- [02 - 静态链接 - 02 - 目标文件](./compile/01/03/README.md)
+- [02 - 静态链接 - 03 - 静态链接](./compile/01/04/README.md)
+- [02 - 静态链接 - 04 - WinPE](./compile/01/05/README.md)
+
+- [03 - 装载与动态链接 - 01 - 可执行文件的装载与进程](./compile/01/06/README.md)
+- [03 - 装载与动态链接 - 02 - 动态链接](./compile/01/07/README.md)
+- [03 - 装载与动态链接 - 03 - linux 共享库](./compile/01/08/README.md)
+- [03 - 装载与动态链接 - 04 - windows 下的动态链接](./compile/01/09/README.md)
+
+- [04 - 库与运行库 - 01 - 内存](./compile/01/10/README.md)
+- [04 - 库与运行库 - 02 - 运行库](./compile/01/11/README.md)
+- [04 - 库与运行库 - 03 - 系统调用与API](./compile/01/12/README.md)
+- [04 - 库与运行库 - 04 - 运行库的实现](./compile/01/13/README.md)
 
 ### 02. 高级C/C++编译技术
 
@@ -64,25 +85,44 @@
 
 
 
-## iOS
+## 04. iOS
 
-- [Effective Objective-C 2.0]()
-
-- [编写高质量代码.改善Objective-C程序的61个建议]()
+### 01. Effective Objective-C 2.0
 
 
 
-## Ruby
-
-### 01. Effective Ruby：改善Ruby程序的48条建议
+### 02. 编写高质量代码.改善Objective-C程序的61个建议
 
 
 
-### 02. Programming Ruby中文版2
+### 03. 高性能编程
 
 
 
-### 03. Ruby程序员修炼之道第2版
+### 04. 启动优化
+
+
+
+### 05. 构建与包体积分析、优化
+
+
+
+### 06. 组件化
+
+
+
+
+## 05. Ruby
+
+### 01. Effective Ruby: 改善Ruby程序的48条建议
+
+
+
+### 02. Programming Ruby(第2版)
+
+
+
+### 03. Ruby程序员修炼之道(第2版)
 
 
 
@@ -96,7 +136,7 @@
 
 
 
-## Python
+## 06. Python
 
 ### 01. Effective Python
 
@@ -104,7 +144,7 @@
 
 
 
-## TCP/HTTP/HTTPS
+## 07. TCP/HTTP/HTTPS
 
 ### 01. 图解HTTP
 
@@ -112,7 +152,7 @@
 
 
 
-## Devops
+## 08. Devops
 
 ### 01. Ansible
 
@@ -148,21 +188,4 @@
 
 [07 - playbook - 01 - 角色](./ansible/07/ansible_playbook.md)
 
-
-
-## iOS 工作中总结
-
-### 01. 构建与包体积分析、优化
-
-
-
-### 02. 启动优化
-
-
-
-### 03. 组件化
-
-
-
-### 04. MR pipiline 检测流程
 
