@@ -1344,7 +1344,967 @@ two four six
 
 ## 14. iterator 与 const_iterator 进行比较
 
+- 比较格式: `const_iterator == iterator`
+- 必须将 `const_iterator` 放在 `==` 的 **左侧**
+- 因为 **const_iterator** 的 operaotr==() 是通过 **成员方法** 实现
+
+```c++
+#include <iostream>
+#include <map>
+
+int main() 
+{
+  // 1.
+  std::map<int, std::string> m = {
+    {1, "one"}, 
+    {2, "two"}, 
+    {3, "three"},
+    {4, "four"}, 
+    {5, "five"}, 
+    {6, "six"}
+  };
+
+  // 2. iterator
+  std::map<int, std::string>::iterator it1 = m.find(3);
+  std::map<int, std::string>::iterator it2 = m.find(6);
+
+  // 3. const_iterator
+  std::map<int, std::string>::const_iterator cit = m.find(3);
+
+  // 4. 比较 iterator 与 const_iterator
+  // std::cout << (it2 == it1) << std::endl; // error
+  if (cit == it1)
+  {
+    std::cout << "cit == it1" << "\n";
+  }
+  else
+  {
+    std::cout << "cit != it1" << "\n";
+  }
+
+  if (cit == it2)
+  {
+    std::cout << "cit == it2" << "\n";
+  }
+  else
+  {
+    std::cout << "cit != it2" << "\n";
+  }
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+cit == it1
+cit != it2
+-----------------------------------------
+```
+
+
+
+## 15. std::distance(it1, it2) 计算迭代器的 ==差距==
+
+```c++
+#include <iostream>
+#include <map>
+
+int main() 
+{
+  // 1.
+  std::map<int, std::string> m = {
+    {1, "one"}, 
+    {2, "two"}, 
+    {3, "three"},
+    {4, "four"}, 
+    {5, "five"}, 
+    {6, "six"}
+  };
+
+  // 2. iterator
+  std::map<int, std::string>::iterator it1 = m.find(3);
+  std::map<int, std::string>::iterator it2 = m.find(6);
+
+  // 3. const_iterator
+  std::map<int, std::string>::const_iterator cit = m.find(5);
+
+  // 4. 报错
+  // std::cout << it2 - it1 << std::endl;
+
+  // 5. std::distance(it1, it2) 计算【迭代器】差值
+  std::cout << "std::distance(it1, it2) = " << std::distance(it1, it2) << std::endl;
+
+  // 6. 崩溃
+  // std::cout << "std::distance(it2, it1) = " << std::distance(it2, it1) << std::endl;
+
+  // 7. 报错
+  // std::cout << "std::distance(it1, cit) = " << std::distance(it1, cit) << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+std::distance(it1, it2) = 3
+-----------------------------------------
+```
+
+
+
+## 16. std::distance<std::ConstIter>(it1, it2)
+
+```c++
+#include <iostream>
+#include <map>
+
+int main() 
+{
+  // 1.
+  std::map<int, std::string> m = {
+    {1, "one"}, 
+    {2, "two"}, 
+    {3, "three"},
+    {4, "four"}, 
+    {5, "five"}, 
+    {6, "six"}
+  };
+
+  // 2. iterator
+  std::map<int, std::string>::iterator it = m.find(3);
+
+  // 3. const_iterator
+  std::map<int, std::string>::const_iterator cit = m.find(5);
+
+  // 4. 统一转换为 const_iterator 计算 distance
+  std::cout << "std::distance(it1, cit) = " << std::distance<std::map<int, std::string>::const_iterator>(it, cit) << std::endl;
+
+  // 5. 崩溃
+  // std::cout << "std::distance(it1, cit) = " << std::distance<std::map<int, std::string>::const_iterator>(cit, it) << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+std::distance(it1, cit) = 2
+-----------------------------------------
+```
+
+
+
+## 17. std::advance(it, N) ==移动== 迭代器
+
+```c++
+#include <iostream>
+#include <map>
+
+int main() 
+{
+  // 1.
+  std::map<int, std::string> m = {
+    {1, "one"}, 
+    {2, "two"}, 
+    {3, "three"},
+    {4, "four"}, 
+    {5, "five"}, 
+    {6, "six"}
+  };
+
+  // 2. iterator
+  std::map<int, std::string>::iterator it = m.find(3);
+  std::cout << it->second << "\n";
+
+  // 3.
+  std::advance(it, 2);
+  std::cout << it->second << "\n";  
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+three
+five
+-----------------------------------------
+```
+
+
+
+## 18. std::remove(begin_it, end_it, 元素)
+
+### 1. std::remove(begin_it, end_it, 值)
+
+#### 1. std::remove(begin_it, end_it, 1)
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+template<typename T>
+std::ostream& operator<<(std::ostream& s, const std::vector<T>& v) {
+  s.put('[');
+  char split[3] = {'\0', ' ', '\0'};
+  for (const auto& e : v) 
+  {
+    s << split << e;
+    split[0] = ',';
+  }
+  return s << ']';
+}
+
+int main()
+{
+  // 1.
+  std::vector<int> c = {1,2,3,4,5,6,7,8,9,1};
+
+  // 2.
+  std::cout << c << "\n";
+
+  // 3.
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 4.
+  std::remove(c.begin(), c.end(), 1);
+
+  // 5.
+  std::cout << c << "\n";
+
+  // 6.
+  std::cout << "size : " << c.size() << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 1]
+size : 10
+[2, 3, 4, 5, 6, 7, 8, 9, 9, 1]
+size : 10
+-----------------------------------------
+```
+
+- std::remove() 移动了区间中的元素
+- 其结果是 **需要被删除** 的元素被移到了 **区间的尾部** 
+- 然后 std::remove() 返回一个迭代器，指向 **第一个 需要被删除** 的元素
+
+![](Snip20190509_3.png)
+
+
+
+#### 2. std::remove(begin_it, end_it, 5)
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+template<typename T>
+std::ostream& operator<<(std::ostream& s, const std::vector<T>& v) {
+  s.put('[');
+  char split[3] = {'\0', ' ', '\0'};
+  for (const auto& e : v) 
+  {
+    s << split << e;
+    split[0] = ',';
+  }
+  return s << ']';
+}
+
+int main()
+{
+  // 1.
+  std::vector<int> c = {1,2,3,4,5,6,7,8,9,1};
+
+  // 2.
+  std::cout << c << "\n";
+
+  // 3.
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 4.
+  std::remove(c.begin(), c.end(), 5);
+
+  // 5.
+  std::cout << c << "\n";
+
+  // 6.
+  std::cout << "size : " << c.size() << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 1]
+size : 10
+[1, 2, 3, 4, 6, 7, 8, 9, 1, 1]
+size : 10
+-----------------------------------------
+```
+
+#### 3. 结论
+
+- 使用 remove 后，容器中的 **元素个数** 并 **没有减少**
+- 被删除的 **元素1** 被 **移动** 到了 **容器的末尾** 
+- remove 算法并不知道它操作的元素的所在容器，所以 **不可能从容器中删除元素**
+
+### 3. std::remove(堆区内存地址)
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+class Animal {
+private:
+  int age;
+  std::string name;
+  
+public:
+  // 无参 构造
+  Animal(){std::cout << "Animal(): " << this << std::endl;}
+
+  // 析构
+  ~Animal(){std::cout << "~Animal(): " << this << std::endl;}
+  
+  // 有参 构造
+  Animal(int _age, std::string _name):age(_age), name(_name) {
+    std::cout << "Animal(int, std::string): " << this << std::endl;
+  }
+  
+  // 拷贝 构造
+  Animal(const Animal& other) {
+    age = other.age;
+    name = other.name;
+    std::cout << "Animal(const Animal& other): " << this << std::endl;
+  }
+
+  // = 赋值运算
+  const Animal& operator=(const Animal& other) {
+    std::cout << "const Animal& operator=(const Animal& other): " << this << std::endl;
+    age = other.age;
+    name = other.name;
+    return *this;
+  }
+  
+  // == 运算符重载
+  bool operator==(const Animal& other) {
+    std::cout << "bool operator==(const Animal& other): " << this << std::endl;
+    if (this != &other) return false;
+    if (age != other.age) return false;
+    if (name != other.name) return false;
+    return false;
+  }
+};
+
+int main()
+{
+  Animal* a1 = new Animal(100, "dog");
+  Animal* a2 = new Animal(101, "monkey");
+  Animal* a3 = new Animal(102, "cat");
+
+  // 1.
+  std::vector<Animal*> c = {
+    a1,
+    a2,
+    a3
+  };
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 2.
+  std::remove(c.begin(), c.end(), a1);
+  std::cout << "size : " << c.size() << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+Animal(int, std::string): 0x7fa540c02c90
+Animal(int, std::string): 0x7fa540c02cb0
+Animal(int, std::string): 0x7fa540c02cd0
+size : 3
+size : 3
+-----------------------------------------
+```
+
+重要: 并 **没有** 看到执行 **析构方法**
+
+### 3. 想【删除】这些元素，必须调用区间形式的 容器.erase()
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+template<typename T>
+std::ostream& operator<<(std::ostream& s, const std::vector<T>& v) {
+  s.put('[');
+  char split[3] = {'\0', ' ', '\0'};
+  for (const auto& e : v) 
+  {
+    s << split << e;
+    split[0] = ',';
+  }
+  return s << ']';
+}
+
+int main()
+{
+  // 1.
+  std::vector<int> c = {1,2,3,4,5,6,7,8,9,1};
+  std::cout << c << "\n";
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 2.
+  c.erase(c.begin());
+  std::cout << c << "\n";
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 3.
+  c.erase(c.begin(), c.end() - 3);
+  std::cout << c << "\n";
+  std::cout << "size : " << c.size() << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 1]
+size : 10
+[2, 3, 4, 5, 6, 7, 8, 9, 1]
+size : 9
+[8, 9, 1]
+size : 3
+-----------------------------------------
+```
+
+### 4. 但是 list remove()、remove_if()、unique() ==成员方法== 确实会 删除元素
+
+..
+
+### 5. 容器.erase() 一样不会释放堆区内存
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+class Animal {
+private:
+  int age;
+  std::string name;
+  
+public:
+  // 无参 构造
+  Animal(){std::cout << "Animal(): " << this << std::endl;}
+
+  // 析构
+  ~Animal(){std::cout << "~Animal(): " << this << std::endl;}
+  
+  // 有参 构造
+  Animal(int _age, std::string _name):age(_age), name(_name) {
+    std::cout << "Animal(int, std::string): " << this << std::endl;
+  }
+  
+  // 拷贝 构造
+  Animal(const Animal& other) {
+    age = other.age;
+    name = other.name;
+    std::cout << "Animal(const Animal& other): " << this << std::endl;
+  }
+
+  // = 赋值运算
+  const Animal& operator=(const Animal& other) {
+    std::cout << "const Animal& operator=(const Animal& other): " << this << std::endl;
+    age = other.age;
+    name = other.name;
+    return *this;
+  }
+  
+  // == 运算符重载
+  bool operator==(const Animal& other) {
+    std::cout << "bool operator==(const Animal& other): " << this << std::endl;
+    if (this != &other) return false;
+    if (age != other.age) return false;
+    if (name != other.name) return false;
+    return false;
+  }
+};
+
+int main()
+{
+  Animal* a1 = new Animal(100, "dog");
+  Animal* a2 = new Animal(101, "monkey");
+  Animal* a3 = new Animal(102, "cat");
+
+  // 1.
+  std::vector<Animal*> c = {
+    a1,
+    a2,
+    a3
+  };
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 2.
+  c.erase(c.begin());
+  std::cout << "size : " << c.size() << std::endl;
+}
+```
+
+### 6. delete 容器.erase() 返回的【迭代器】指向的 元素(内存地址)
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+class Animal {
+private:
+  int age;
+  std::string name;
+  
+public:
+  // 无参 构造
+  Animal(){std::cout << "Animal(): " << this << std::endl;}
+
+  // 析构
+  ~Animal(){std::cout << "~Animal(): " << this << std::endl;}
+  
+  // 有参 构造
+  Animal(int _age, std::string _name):age(_age), name(_name) {
+    std::cout << "Animal(int, std::string): " << this << std::endl;
+  }
+  
+  // 拷贝 构造
+  Animal(const Animal& other) {
+    age = other.age;
+    name = other.name;
+    std::cout << "Animal(const Animal& other): " << this << std::endl;
+  }
+
+  // = 赋值运算
+  const Animal& operator=(const Animal& other) {
+    std::cout << "const Animal& operator=(const Animal& other): " << this << std::endl;
+    age = other.age;
+    name = other.name;
+    return *this;
+  }
+  
+  // == 运算符重载
+  bool operator==(const Animal& other) {
+    std::cout << "bool operator==(const Animal& other): " << this << std::endl;
+    if (this != &other) return false;
+    if (age != other.age) return false;
+    if (name != other.name) return false;
+    return false;
+  }
+};
+
+int main()
+{
+  Animal* a1 = new Animal(100, "dog");
+  Animal* a2 = new Animal(101, "monkey");
+  Animal* a3 = new Animal(102, "cat");
+
+  // 1.
+  std::vector<Animal*> c = {
+    a1,
+    a2,
+    a3
+  };
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 2.
+  auto it = c.erase(c.begin());
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 3.
+  delete *it;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+Animal(int, std::string): 0x7f82a7c02c90
+Animal(int, std::string): 0x7f82a7c02cb0
+Animal(int, std::string): 0x7f82a7c02cd0
+size : 3
+size : 2
+~Animal(): 0x7f82a7c02cb0
+-----------------------------------------
+```
+
+### 7. `容器[智能指针对象]`
+
+```c++
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+
+class Animal {
+private:
+  int age;
+  std::string name;
+  
+public:
+  // 无参 构造
+  Animal(){std::cout << "Animal(): " << this << std::endl;}
+
+  // 析构
+  ~Animal(){std::cout << "~Animal(): " << this << std::endl;}
+  
+  // 有参 构造
+  Animal(int _age, std::string _name):age(_age), name(_name) {
+    std::cout << "Animal(int, std::string): " << this << std::endl;
+  }
+  
+  // 拷贝 构造
+  Animal(const Animal& other) {
+    age = other.age;
+    name = other.name;
+    std::cout << "Animal(const Animal& other): " << this << std::endl;
+  }
+
+  // = 赋值运算
+  const Animal& operator=(const Animal& other) {
+    std::cout << "const Animal& operator=(const Animal& other): " << this << std::endl;
+    age = other.age;
+    name = other.name;
+    return *this;
+  }
+  
+  // == 运算符重载
+  bool operator==(const Animal& other) {
+    std::cout << "bool operator==(const Animal& other): " << this << std::endl;
+    if (this != &other) return false;
+    if (age != other.age) return false;
+    if (name != other.name) return false;
+    return false;
+  }
+};
+
+int main()
+{
+  Animal* a1 = new Animal(100, "dog");
+  Animal* a2 = new Animal(101, "monkey");
+  Animal* a3 = new Animal(102, "cat");
+
+  // 1.
+  std::shared_ptr<Animal> ap1(a1);
+  std::shared_ptr<Animal> ap2(a2);
+  std::shared_ptr<Animal> ap3(a3);
+
+  // 2. STL 容器内，智能包含 std::shared_ptr<T> 对象，
+  // 因为其他类型 智能指针类模板 不支持【对象拷贝】
+  std::vector<std::shared_ptr<Animal>> c = {
+    ap1,
+    ap2,
+    ap3
+  };
+  std::cout << "size : " << c.size() << std::endl;
+
+  // 3.
+  auto it = c.erase(c.begin());
+  std::cout << "size : " << c.size() << std::endl;
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+Animal(int, std::string): 0x7fcb05402c90
+Animal(int, std::string): 0x7fcb05402cb0
+Animal(int, std::string): 0x7fcb05402cd0
+size : 3
+size : 2
+~Animal(): 0x7fcb05402cd0
+~Animal(): 0x7fcb05402cb0
+~Animal(): 0x7fcb05402c90
+-----------------------------------------
+```
+
+此时三个堆区的内存，全部都已经释放了。
+
+
+
+## 19. std::accumulate(it1, it2, lambda) 区间执行 数值计算
+
+```c++
+#include <iostream>
+#include <vector>
+#include <numeric>
+#include <string>
+#include <functional>
+
+int main()
+{
+  // 1.
+  std::vector<int> v{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+  // 2.
+  int sum = std::accumulate(v.begin(), v.end(), 0);
+
+  // 2.
+  int product = std::accumulate(v.begin(), v.end(), 1, std::multiplies<int>());
+
+  // 3. lambda 给下面 4. 和 5. 使用的
+  auto dash_fold = [](std::string a, int b) {
+                       return std::move(a) + '-' + std::to_string(b);
+                   };
+
+  // 4.                   
+  std::string s = std::accumulate(std::next(v.begin()), v.end(),
+                                  std::to_string(v[0]), // start with first element
+                                  dash_fold);
+
+  // 5. Right fold using reverse iterators
+  std::string rs = std::accumulate(std::next(v.rbegin()), v.rend(),
+                                   std::to_string(v.back()), // start with last element
+                                   dash_fold);
+
+  // 6.
+  std::cout << "sum: " << sum << '\n'
+            << "product: " << product << '\n'
+            << "dash-separated string: " << s << '\n'
+            << "dash-separated string (right-folded): " << rs << '\n';
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+sum: 55
+product: 3628800
+dash-separated string: 1-2-3-4-5-6-7-8-9-10
+dash-separated string (right-folded): 10-9-8-7-6-5-4-3-2-1
+-----------------------------------------
+```
+
+
+
+## 20. 容器的 ==成员方法== 优先于 同名的算法函数
+
+![](Snip20190509_4.png)
 
 
 
 
+## 21. 优先 ==函数对象== 作为 STL 算法函数的 参数
+
+### 1. 函数对象: 重载 () 运算符
+
+```c++
+#include <iostream>
+using namespace std;
+
+class CAverage
+{
+public:
+
+  /**
+   * 重载 () 运算符
+   */
+  double operator()(int a1, int a2, int a3)
+  {
+    return (double)(a1 + a2 + a3) / 3;
+  }
+};
+
+int main()
+{
+  CAverage average;  //能够求三个整数平均数的函数对象
+
+  // 调用 double operator()(int a1, int a2, int a3) 运算符重载方法
+  cout << average(3, 2, 3) << "\n"; //=> cout << average.operator(3, 2, 3);
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+2.66667
+-----------------------------------------
+```
+
+### 2. std::set<value, 函数对象>
+
+```c++
+#include <iostream>
+#include <set>
+
+using namespace std;
+
+class StringSort
+{
+public:
+  bool operator() (const string &str1, const string &str2) const
+  {
+    return str1 > str2;
+  }
+};
+
+int main(int argc, char const *argv[])
+{
+  set<string, StringSort> myset;
+  myset.insert("A");
+  myset.insert("B");
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+-----------------------------------------
+```
+
+### 3. std::find_if()
+
+```c++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+class Nth
+{
+public:
+  Nth(int n=0):m_nth(n),m_count(1){}
+
+  bool operator() (int)
+  {
+    return m_count++ == m_nth;
+  }
+  
+  int GetCount()const
+  {
+    return m_count;
+  }
+  
+private:
+  int m_nth;
+  int m_count;
+};
+
+int main(int argc, char const *argv[])
+{
+  // 1.
+  std::vector<int> v {1,2,3};
+
+  // 2. 要查找的目标对象的【拷贝】
+  Nth target(2);
+
+  // 3.
+  auto it = std::find_if(v.begin(), v.end(), target);
+  std::cout << *it << "\n";
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+2
+-----------------------------------------
+```
+
+### 4. std::remove_if()
+
+```c++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+class Nth
+{
+public:
+  Nth(int n=0):m_nth(n),m_count(1){}
+
+  bool operator() (int)
+  {
+    return m_count++ == m_nth;
+  }
+  
+  int GetCount()const
+  {
+    return m_count;
+  }
+  
+private:
+  int m_nth;
+  int m_count;
+};
+
+int main(int argc, char const *argv[])
+{
+  // 1.
+  std::vector<int> v {1,2,3};
+
+  // 2. 要查找的目标对象的【拷贝】
+  Nth target(2);
+
+  // 3.
+  auto it = std::remove_if(v.begin(), v.end(), target);
+  std::cout << *it << "\n";
+
+  // 4.
+  std::cout <<  v.size() << "\n";
+}
+```
+
+```
+ ~/Desktop/main  make lan=c++ ver=c++11
+g++ main.cpp  -std=c++11
+-----------------------------------------
+./a.out
+3
+3
+-----------------------------------------
+```
