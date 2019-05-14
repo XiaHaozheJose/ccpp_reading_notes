@@ -58,7 +58,7 @@
 
 
 
-## 8. code (代码) 与 data (数据) 分开的好处
+## 8. text (代码) 与 data (数据) 分开的好处
 
 ![](10.png)
 
@@ -590,7 +590,7 @@ Symbol table '.symtab' contains 12 entries:
 
 
 
-## 18. elf Header
+## 18. elf ==Header== struct
 
 ### 1. `readelf -h` 
 
@@ -622,6 +622,10 @@ ELF Header:
 
 ### 2. `/usr/include/elf.h`
 
+- 1) Elf32_Ehdr
+- 2) Elf64_Ehdr
+- 3) Ehdr ==> Elf Header
+
 #### 1. elf 32 header
 
 ```c
@@ -632,8 +636,8 @@ typedef struct
   Elf32_Half  e_machine;    /* Architecture */
   Elf32_Word  e_version;    /* Object file version */
   Elf32_Addr  e_entry;    /* Entry point virtual address */
-  Elf32_Off e_phoff;    /* Program header table file offset */
-  Elf32_Off e_shoff;    /* Section header table file offset */
+  Elf32_Off   e_phoff;    /* Program header table file offset */
+  Elf32_Off   e_shoff;    /* Section header table file offset */
   Elf32_Word  e_flags;    /* Processor-specific flags */
   Elf32_Half  e_ehsize;   /* ELF header size in bytes */
   Elf32_Half  e_phentsize;    /* Program header table entry size */
@@ -654,8 +658,8 @@ typedef struct
   Elf64_Half  e_machine;    /* Architecture */
   Elf64_Word  e_version;    /* Object file version */
   Elf64_Addr  e_entry;    /* Entry point virtual address */
-  Elf64_Off e_phoff;    /* Program header table file offset */
-  Elf64_Off e_shoff;    /* Section header table file offset */
+  Elf64_Off   e_phoff;    /* Program header table file offset */
+  Elf64_Off   e_shoff;    /* Section header table file offset */
   Elf64_Word  e_flags;    /* Processor-specific flags */
   Elf64_Half  e_ehsize;   /* ELF header size in bytes */
   Elf64_Half  e_phentsize;    /* Program header table entry size */
@@ -690,15 +694,327 @@ typedef struct
 
 
 
-## 19. Section header table (段表)
+## 19. ==Section header table== (段表) 
+
+### 1. Section header table (段表) 描述 elf 文件中的 ==每一个 section==
+
+![](25.png)
+
+### 2. objdump -h 会省略一些 section
+
+![](26.png)
+
+```
+xzh@xzh-VirtualBox:~$ objdump -h main.o
+
+main.o:     file format elf64-x86-64
+
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+  0 .text         00000012  0000000000000000  0000000000000000  00000040  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .data         00000004  0000000000000000  0000000000000000  00000054  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000004  0000000000000000  0000000000000000  00000058  2**2
+                  ALLOC
+  3 .comment      0000002b  0000000000000000  0000000000000000  00000058  2**0
+                  CONTENTS, READONLY
+  4 .note.GNU-stack 00000000  0000000000000000  0000000000000000  00000083  2**0
+                  CONTENTS, READONLY
+  5 .eh_frame     00000038  0000000000000000  0000000000000000  00000088  2**3
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
+```
+
+只打印出了 6 个 section。
+
+### 3. readelf -S 显示 所有 section
+
+```
+xzh@xzh-VirtualBox:~$ readelf -S main.o
+There are 11 section headers, starting at offset 0x268:
+
+Section Headers:
+  [Nr] Name              Type             Address           Offset
+       Size              EntSize          Flags  Link  Info  Align
+  [ 0]                   NULL             0000000000000000  00000000
+       0000000000000000  0000000000000000           0     0     0
+  [ 1] .text             PROGBITS         0000000000000000  00000040
+       0000000000000012  0000000000000000  AX       0     0     1
+  [ 2] .data             PROGBITS         0000000000000000  00000054
+       0000000000000004  0000000000000000  WA       0     0     4
+  [ 3] .bss              NOBITS           0000000000000000  00000058
+       0000000000000004  0000000000000000  WA       0     0     4
+  [ 4] .comment          PROGBITS         0000000000000000  00000058
+       000000000000002b  0000000000000001  MS       0     0     1
+  [ 5] .note.GNU-stack   PROGBITS         0000000000000000  00000083
+       0000000000000000  0000000000000000           0     0     1
+  [ 6] .eh_frame         PROGBITS         0000000000000000  00000088
+       0000000000000038  0000000000000000   A       0     0     8
+  [ 7] .rela.eh_frame    RELA             0000000000000000  000001f8
+       0000000000000018  0000000000000018   I       8     6     8
+  [ 8] .symtab           SYMTAB           0000000000000000  000000c0
+       0000000000000120  0000000000000018           9     8     8
+  [ 9] .strtab           STRTAB           0000000000000000  000001e0
+       0000000000000016  0000000000000000           0     0     1
+  [10] .shstrtab         STRTAB           0000000000000000  00000210
+       0000000000000054  0000000000000000           0     0     1
+```
+
+main.o 目标文件中的 11 个 section 都被打印出来。
+
+### 4. 32 位 section header struct
+
+```c
+typedef struct
+{
+  Elf32_Word  sh_name;    /* Section name (string tbl index) */
+  Elf32_Word  sh_type;    /* Section type */
+  Elf32_Word  sh_flags;   /* Section flags */
+  Elf32_Addr  sh_addr;    /* Section virtual addr at execution */
+  Elf32_Off sh_offset;    /* Section file offset */
+  Elf32_Word  sh_size;    /* Section size in bytes */
+  Elf32_Word  sh_link;    /* Link to another section */
+  Elf32_Word  sh_info;    /* Additional section information */
+  Elf32_Word  sh_addralign;   /* Section alignment */
+  Elf32_Word  sh_entsize;   /* Entry size if section holds table */
+} Elf32_Shdr;
+```
+
+### 5. 64 位 section header struct
+
+```c
+typedef struct
+{
+  Elf64_Word  sh_name;    /* Section name (string tbl index) */
+  Elf64_Word  sh_type;    /* Section type */
+  Elf64_Xword sh_flags;   /* Section flags */
+  Elf64_Addr  sh_addr;    /* Section virtual addr at execution */
+  Elf64_Off sh_offset;    /* Section file offset */
+  Elf64_Xword sh_size;    /* Section size in bytes */
+  Elf64_Word  sh_link;    /* Link to another section */
+  Elf64_Word  sh_info;    /* Additional section information */
+  Elf64_Xword sh_addralign;   /* Section alignment */
+  Elf64_Xword sh_entsize;   /* Entry size if section holds table */
+} Elf64_Shdr;
+```
+
+### 6. section header struct 成员含义
+
+![](27.png)
+
+![](28.png)
+
+### 7. elf header->e_shoff 定位到 elf 文件中的 section header table
+
+![](29.png)
+
+### 8. 段的 类型
+
+![](30.png)
+
+![](31.png)
+
+### 9. 段的 标志位
+
+![](32.png)
+
+### 10. 段的 链接信息
+
+![](33.png)
 
 
 
+## 20. `.rel.text` 重定位表
+
+### 1. 重定位的符号类型
+
+- 1) 需要 重定位的 **全局变量**
+- 2) 需要 重定位的 **函数**
+
+### 2. main.c
+
+```c
+extern int age; // 引用其他文件中的 全局变量
+
+int main(int argv, char* argr[])
+{
+	printf("age = %d\n", age); // 引用其他文件中的 函数
+}
+```
+
+### 3. readelf -s 查看 ==编译== 后的 elf 文件 (main.o) 符号表
+
+```
+xzh@xzh-VirtualBox:~$ readelf -s main.o
+
+Symbol table '.symtab' contains 13 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS main.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    7
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    8
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     9: 0000000000000000    47 FUNC    GLOBAL DEFAULT    1 main
+    10: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND age
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    12: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printf
+```
+
+可以看到 **age** 和 **printf** 两个符号的 **Ndx** 值都是 **UND (undefined)**
+
+### 4. readelf -s 查看 ==链接== 后的 elf 文件 (a.out) 符号表
+
+```
+xzh@xzh-VirtualBox:~$ gcc -c main.c
+xzh@xzh-VirtualBox:~$ gcc -c age.c
+xzh@xzh-VirtualBox:~$ gcc *.o
+xzh@xzh-VirtualBox:~$ ./a.out
+age = 99
+```
+
+```
+xzh@xzh-VirtualBox:~$ readelf -s a.out
+
+Symbol table '.dynsym' contains 7 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterTMCloneTab
+     2: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND printf@GLIBC_2.2.5 (2)
+     3: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_main@GLIBC_2.2.5 (2)
+     4: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__
+     5: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMCloneTable
+     6: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND __cxa_finalize@GLIBC_2.2.5 (2)
+
+Symbol table '.symtab' contains 65 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000238     0 SECTION LOCAL  DEFAULT    1
+     2: 0000000000000254     0 SECTION LOCAL  DEFAULT    2
+     3: 0000000000000274     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000298     0 SECTION LOCAL  DEFAULT    4
+     5: 00000000000002b8     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000360     0 SECTION LOCAL  DEFAULT    6
+     7: 00000000000003e4     0 SECTION LOCAL  DEFAULT    7
+     8: 00000000000003f8     0 SECTION LOCAL  DEFAULT    8
+     9: 0000000000000418     0 SECTION LOCAL  DEFAULT    9
+    10: 00000000000004d8     0 SECTION LOCAL  DEFAULT   10
+    11: 00000000000004f0     0 SECTION LOCAL  DEFAULT   11
+    12: 0000000000000510     0 SECTION LOCAL  DEFAULT   12
+    13: 0000000000000530     0 SECTION LOCAL  DEFAULT   13
+    14: 0000000000000540     0 SECTION LOCAL  DEFAULT   14
+    15: 00000000000006f4     0 SECTION LOCAL  DEFAULT   15
+    16: 0000000000000700     0 SECTION LOCAL  DEFAULT   16
+    17: 0000000000000710     0 SECTION LOCAL  DEFAULT   17
+    18: 0000000000000750     0 SECTION LOCAL  DEFAULT   18
+    19: 0000000000200db8     0 SECTION LOCAL  DEFAULT   19
+    20: 0000000000200dc0     0 SECTION LOCAL  DEFAULT   20
+    21: 0000000000200dc8     0 SECTION LOCAL  DEFAULT   21
+    22: 0000000000200fb8     0 SECTION LOCAL  DEFAULT   22
+    23: 0000000000201000     0 SECTION LOCAL  DEFAULT   23
+    24: 0000000000201014     0 SECTION LOCAL  DEFAULT   24
+    25: 0000000000000000     0 SECTION LOCAL  DEFAULT   25
+    26: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c
+    27: 0000000000000570     0 FUNC    LOCAL  DEFAULT   14 deregister_tm_clones
+    28: 00000000000005b0     0 FUNC    LOCAL  DEFAULT   14 register_tm_clones
+    29: 0000000000000600     0 FUNC    LOCAL  DEFAULT   14 __do_global_dtors_aux
+    30: 0000000000201014     1 OBJECT  LOCAL  DEFAULT   24 completed.7696
+    31: 0000000000200dc0     0 OBJECT  LOCAL  DEFAULT   20 __do_global_dtors_aux_fin
+    32: 0000000000000640     0 FUNC    LOCAL  DEFAULT   14 frame_dummy
+    33: 0000000000200db8     0 OBJECT  LOCAL  DEFAULT   19 __frame_dummy_init_array_
+    34: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS age.c
+    35: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS main.c
+    36: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c
+    37: 0000000000000854     0 OBJECT  LOCAL  DEFAULT   18 __FRAME_END__
+    38: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS
+    39: 0000000000200dc0     0 NOTYPE  LOCAL  DEFAULT   19 __init_array_end
+    40: 0000000000200dc8     0 OBJECT  LOCAL  DEFAULT   21 _DYNAMIC
+    41: 0000000000200db8     0 NOTYPE  LOCAL  DEFAULT   19 __init_array_start
+    42: 0000000000000710     0 NOTYPE  LOCAL  DEFAULT   17 __GNU_EH_FRAME_HDR
+    43: 0000000000200fb8     0 OBJECT  LOCAL  DEFAULT   22 _GLOBAL_OFFSET_TABLE_
+    44: 00000000000006f0     2 FUNC    GLOBAL DEFAULT   14 __libc_csu_fini
+    45: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterTMCloneTab
+    46: 0000000000201000     0 NOTYPE  WEAK   DEFAULT   23 data_start
+    47: 0000000000201014     0 NOTYPE  GLOBAL DEFAULT   23 _edata
+    48: 00000000000006f4     0 FUNC    GLOBAL DEFAULT   15 _fini
+    49: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND printf@@GLIBC_2.2.5
+    50: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __libc_start_main@@GLIBC_
+    51: 0000000000201000     0 NOTYPE  GLOBAL DEFAULT   23 __data_start
+    52: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__
+    53: 0000000000201008     0 OBJECT  GLOBAL HIDDEN    23 __dso_handle
+    54: 0000000000000700     4 OBJECT  GLOBAL DEFAULT   16 _IO_stdin_used
+    55: 0000000000000680   101 FUNC    GLOBAL DEFAULT   14 __libc_csu_init
+    56: 0000000000201010     4 OBJECT  GLOBAL DEFAULT   23 age
+    57: 0000000000201018     0 NOTYPE  GLOBAL DEFAULT   24 _end
+    58: 0000000000000540    43 FUNC    GLOBAL DEFAULT   14 _start
+    59: 0000000000201014     0 NOTYPE  GLOBAL DEFAULT   24 __bss_start
+    60: 000000000000064a    47 FUNC    GLOBAL DEFAULT   14 main
+    61: 0000000000201018     0 OBJECT  GLOBAL HIDDEN    23 __TMC_END__
+    62: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMCloneTable
+    63: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND __cxa_finalize@@GLIBC_2.2
+    64: 00000000000004f0     0 FUNC    GLOBAL DEFAULT   11 _init
+```
+
+内容很多，过滤出 **age** 和 **printf** 两个符号
+
+```
+56: 0000000000201010     4 OBJECT  GLOBAL DEFAULT   23 age
+49: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND printf@@GLIBC_2.2.5
+```
+
+- 对于 **age** 符号，已经确定出现在 **23** 号 section 段
+- 但是对于 **printf** 符号，仍然为 **UND printf@@GLIBC_2.2.5** ，因为依赖 **动态库 libc.so** ，所以需要在 **a.out 运行时** 完成 **动态符号重定位**
 
 
 
+## 21. `.shstrtab` 字符串表
+
+### 1. ==字符串表== 存储 elf 文件中所有的 字符串
+
+![](34.png)
+
+### 2. 通过在 字符串表 中的 ==偏移量== 查找对应的 字符串
+
+![](35.png)
+
+### 3. 常见的 ==两种== 字符串表
+
+![](37.png)
+
+### 4. elf header->e_shstrndx 定位 section header table 字符串表
+
+![](36.png)
 
 
 
+## 22. 符号 vs 符号名
 
+![](38.png)
+
+
+
+## 23. 每一个待链接的 ==目标文件== 中都包含一个 ==符号表==
+
+![](39.png)
+
+
+
+## 24. 符号表中的 ==符号分类==
+
+![](40.png)
+
+
+
+## 25. 查看 目标文件 ==符号表== 工具
+
+- 1、 readelf
+- 2、 objdump
+- 3、nm
+
+
+
+## 26. elf ==Sym(bol)== struct
 
