@@ -40,13 +40,13 @@
 
 
 
-## 6. elf File Header
+## 6. elf File ==Header==
 
 ![](07.png)
 
 
 
-## 7. bss section 只占用 目标文件，但在链接时
+## 7. ==bss== section 只占用 目标文件，但在链接时
 
 ### 1. bss section 的历史
 
@@ -176,7 +176,7 @@ Section Headers:
 
 
 
-## 10. size 查看 elf 中的 text、data、bss section 长度
+## 10. ==size== 查看 elf 中的 text、data、bss section 长度
 
 ```
 xzh@xzh-VirtualBox:~$ size main.o
@@ -186,7 +186,7 @@ xzh@xzh-VirtualBox:~$ size main.o
 
 
 
-## 11. objdump `-s -d` 查看 main.o 代码段 ==反汇编===
+## 11. ==objdump== `-s -d` 查看 main.o 代码段 ==反汇编===
 
 ![](14.png)
 
@@ -488,7 +488,7 @@ Symbol table '.symtab' contains 13 entries:
 
 
 
-## 14. bss 段
+## 14. ==bss 段==
 
 ### 1. main.c
 
@@ -584,7 +584,7 @@ Symbol table '.symtab' contains 12 entries:
 
 
 
-## 17. 自定义 section 段
+## 17. ==自定义== section 段
 
 ![](17.png)
 
@@ -824,7 +824,7 @@ typedef struct
 
 
 
-## 20. `.rel.text` 重定位表
+## 20. `.rel.text` ==重定位表== 
 
 ### 1. 重定位的符号类型
 
@@ -970,7 +970,7 @@ Symbol table '.symtab' contains 65 entries:
 
 
 
-## 21. `.shstrtab` 字符串表
+## 21. `.shstrtab` ==字符串表==
 
 ### 1. ==字符串表== 存储 elf 文件中所有的 字符串
 
@@ -990,7 +990,7 @@ Symbol table '.symtab' contains 65 entries:
 
 
 
-## 22. 符号 vs 符号名
+## 22. ==符号 (elf symbol)== VS ==符号名 (字符串)== 
 
 ![](38.png)
 
@@ -1002,7 +1002,7 @@ Symbol table '.symtab' contains 65 entries:
 
 
 
-## 24. 符号表中的 ==符号分类==
+## 24. ==符号表== 中存储 各种类型 ==符号==
 
 ![](40.png)
 
@@ -1012,9 +1012,148 @@ Symbol table '.symtab' contains 65 entries:
 
 - 1、 readelf
 - 2、 objdump
-- 3、nm
+- 3、 nm
 
 
 
 ## 26. elf ==Sym(bol)== struct
+
+### 1. 符号表 => 一个 section (段) => 结构体实例数组
+
+![](41.png)
+
+### 2. 32 位 Sym(bol) struct
+
+```c
+typedef struct
+{
+  Elf32_Word  st_name;      /* Symbol name (string tbl index) */
+  Elf32_Addr  st_value;     /* Symbol value */
+  Elf32_Word  st_size;      /* Symbol size */
+  unsigned char st_info;    /* Symbol type and binding */
+  unsigned char st_other;   /* Symbol visibility */
+  Elf32_Section st_shndx;   /* Section index */
+} Elf32_Sym;
+```
+
+### 3. 64 位 Sym(bol) struct
+
+```c
+typedef struct
+{
+  Elf64_Word  st_name;      /* Symbol name (string tbl index) */
+  unsigned char st_info;    /* Symbol type and binding */
+  unsigned char st_other;   /* Symbol visibility */
+  Elf64_Section st_shndx;   /* Section index */
+  Elf64_Addr  st_value;     /* Symbol value */
+  Elf64_Xword st_size;      /* Symbol size */
+} Elf64_Sym;
+```
+
+### 4. struct 成员 含义
+
+![](42.png)
+
+### 5. 符号 ==绑定==
+
+![](43.png)
+
+### 6. 符号 ==类型==
+
+![](44.png)
+
+### 7. 符号 ==所在段== 的特殊值 (Elf64_Sym->st_shndx)
+
+- 通常情况下为一个 **数字**
+- 表明 **所属** 哪一个 段的 **序号**
+
+![](45.png)
+
+### 8. 符号 ==值==
+
+![](46.png)
+
+![](47.png)
+
+### 9. ld 链接生成 可执行文件 时，多出很多 ==特殊的符号==
+
+![](48.png)
+
+```c
+#include <stdio.h>
+
+extern char __executable_start[];
+extern char etext[], _etext[], __etext[];
+extern char edata[], _edata[];
+extern char end[], _end[];
+
+int main(int argv, char* argr[])
+{
+	printf("__executable_start = %p\n", __executable_start);
+	printf("etext = %p\n", etext);
+	printf("_etext = %p\n", _etext);
+	printf("__etext = %p\n", __etext);
+	printf("edata = %p\n", edata);
+	printf("_edata = %p\n", _edata);
+	printf("end = %p\n", end);
+	printf("_end = %p\n", _end);
+}
+```
+
+```
+xzh@xzh-VirtualBox:~$ gcc main.c
+xzh@xzh-VirtualBox:~$ ./a.out
+__executable_start = 0x5617a43b8000
+etext = 0x5617a43b879d
+_etext = 0x5617a43b879d
+__etext = 0x5617a43b879d
+edata = 0x5617a45b9010
+_edata = 0x5617a45b9010
+end = 0x5617a45b9018
+_end = 0x5617a45b9018
+```
+
+
+
+## 27. 符号修饰 与 函数签名
+
+### 1. 早期编译器，变量和函数的名字 == 符号名
+
+![](49.png)
+
+- 1) **源文件** 中的 名字
+- 2) **目标文件->符号表** 中的 名字
+
+### 2. 带来的问题: 同名冲突
+
+![](50.png)
+
+### 3. Unix C 规定
+
+C 源文件所有的 **变量名** 和 **函数名** 在编译之后，在其名字之前加上 `_` 下划线:
+
+- 1) **C 源文件** 中的 **函数名**: `main`
+- 2) **目标文件** 中的 **符号名**: `_main`
+
+### 4. Fortran 规定
+
+Fortran 源文件所有的 **变量名** 和 **函数名** 在编译之后，在其名字 **之前 和 之后** 都加上 `_` 下划线:
+
+- 1) **Fortran 源文件** 中的 **函数名**: `main`
+- 2) **目标文件** 中的 **符号名**: `_main_`
+
+### 5. C++ ==语言== 级别的 namespace 名字隔离
+
+..
+
+### 6. 函数名 只是 ==函数签名== 的一部分
+
+![](51.png)
+
+### 7. C++ 符号 ==修饰== (Name ==Decoration==) => 函数重载
+
+![](52.png)
+
+### 8. C++ 符号 ==改编== (Name ==Mangling==)
+
 
