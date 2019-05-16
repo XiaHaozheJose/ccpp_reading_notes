@@ -990,7 +990,7 @@ Symbol table '.symtab' contains 65 entries:
 
 
 
-## 22. ==符号 (elf symbol)== VS ==符号名 (字符串)== 
+## 22. ==符号== (elf symbol) vs ==符号名== (字符串)
 
 ![](38.png)
 
@@ -1006,6 +1006,12 @@ Symbol table '.symtab' contains 65 entries:
 
 ![](40.png)
 
+- 1) **全局** 符号 (全局变量、函数)
+- 2) 全局符号的 **引用**
+- 3) 段名
+- 4) **局部** 符号 (只在 **当前编译单元** 内部可见)
+- 5) 行号 (机器指令 <=> 源文件中的代码行)
+
 
 
 ## 25. 查看 目标文件 ==符号表== 工具
@@ -1016,7 +1022,7 @@ Symbol table '.symtab' contains 65 entries:
 
 
 
-## 26. elf ==Sym(bol)== struct
+## 26. elf ==Symbol== struct
 
 ### 1. 符号表 => 一个 section (段) => 结构体实例数组
 
@@ -1069,7 +1075,7 @@ typedef struct
 
 ![](45.png)
 
-### 8. 符号 ==值==
+### 8. 符号==值== (存储在不同地方，表示的含义不同)
 
 ![](46.png)
 
@@ -1154,6 +1160,454 @@ Fortran 源文件所有的 **变量名** 和 **函数名** 在编译之后，在
 
 ![](52.png)
 
-### 8. C++ 符号 ==改编== (Name ==Mangling==)
+### 8. extern "C" 同时 声明 和 定义 C 符号
 
+![](53.png)
+
+### 9.extern "C" 只单独 ==声明== C 符号
+
+![](54.png)
+
+### 10. C++ 混编 C
+
+![](55.png)
+
+### 11. C++ 符号 ==改编== (Name ==Mangling==)
+
+..
+
+
+
+##28. ==强==符号 vs ==弱==符号
+
+### 1. 在 ==链接== 时可能出现 ==同名全局符号== 冲突 (符号重命名)
+
+#### 1. 所有的 C 文件
+
+```
+xzh@xzh-VirtualBox:~/src$ ls
+animal.c  main.c  people.c
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat animal.c
+#include <stdio.h>
+
+int age = 100;
+
+void run() {
+	printf("animal run\n");
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat animal.c
+#include <stdio.h>
+
+int age = 100;
+
+void run() {
+	printf("animal run\n");
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+extern int age;
+extern void run();
+
+int main(int argv, char* argr[])
+{
+	printf("age = %d\n", age);
+	run();
+}
+```
+
+#### 2. 单独 编译 每一个 C 文件
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c *.c
+xzh@xzh-VirtualBox:~/src$ ll
+total 32
+drwxrwxr-x  2 xzh xzh 4096 May 16 18:25 ./
+drwxr-xr-x 17 xzh xzh 4096 May 16 18:22 ../
+-rw-rw-r--  1 xzh xzh   76 May 16 18:23 animal.c
+-rw-rw-r--  1 xzh xzh 1568 May 16 18:25 animal.o
+-rw-rw-r--  1 xzh xzh  130 May 16 18:23 main.c
+-rw-rw-r--  1 xzh xzh 1680 May 16 18:25 main.o
+-rw-rw-r--  1 xzh xzh   75 May 16 18:23 people.c
+-rw-rw-r--  1 xzh xzh 1568 May 16 18:25 people.o
+```
+
+#### 3. 链接 所有的 目标文件 时报错
+
+```c
+xzh@xzh-VirtualBox:~/src$ gcc *.o
+people.o:(.data+0x0): multiple definition of `age'
+animal.o:(.data+0x0): first defined here
+people.o: In function `run':
+people.c:(.text+0x0): multiple definition of `run'
+animal.o:animal.c:(.text+0x0): first defined here
+collect2: error: ld returned 1 exit status
+```
+
+- 1) multiple definition of `age'
+- 2) multiple definition of `run'
+
+提示重读定义了2个 **全局** 类型的符号。
+
+### 2. 因为 ==全局==符号 => ==强==符号 (Strong Symbol)
+
+#### 1. 查看 people.o 符号表
+
+```
+xzh@xzh-VirtualBox:~/src$ readelf -s people.o
+
+Symbol table '.symtab' contains 13 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS people.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    7
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    8
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     9: 0000000000000000     4 OBJECT  GLOBAL DEFAULT    3 age
+    10: 0000000000000000    19 FUNC    GLOBAL DEFAULT    1 run
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    12: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND puts
+```
+
+- 1) age 符号的 **Bind** 类型是 **GLOBAL**
+- 2) run 符号的 **Bind** 类型同样是 **GLOBAL**
+
+#### 2. 查看 animal.o 符号表
+
+```
+xzh@xzh-VirtualBox:~/src$ readelf -s animal.o
+
+Symbol table '.symtab' contains 13 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS animal.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    7
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    8
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     9: 0000000000000000     4 OBJECT  GLOBAL DEFAULT    3 age
+    10: 0000000000000000    19 FUNC    GLOBAL DEFAULT    1 run
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    12: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND puts
+```
+
+- 1) age 符号的 **Bind** 类型是 **GLOBAL**
+- 2) run 符号的 **Bind** 类型同样是 **GLOBAL**
+
+### 3. 编译器 默认 ==函数== 和 ==已初始化的全局变量== 都是 Strong Symbol
+
+```c
+#include <stdio.h>
+
+int age = 100; // 已经初始化的【全局变量】==> 强符号
+
+void run() { // 【函数】==> 强符号
+	printf("animal run\n");
+}
+```
+
+### 4. ==定义== 一个 ==弱==符号
+
+![](56.png)
+
+```c
+extern int ext;
+int weak1;
+int strong = 1;
+__attribute__((weak)) int weak2 = 2;
+
+int main(int argv, char* argr[])
+{
+}
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c main.c
+xzh@xzh-VirtualBox:~/src$ readelf -s main.o
+
+Symbol table '.symtab' contains 12 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS main.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     8: 0000000000000004     4 OBJECT  GLOBAL DEFAULT  COM weak1
+     9: 0000000000000000     4 OBJECT  GLOBAL DEFAULT    2 strong
+    10: 0000000000000004     4 OBJECT  WEAK   DEFAULT    2 weak2
+    11: 0000000000000000    18 FUNC    GLOBAL DEFAULT    1 main
+```
+
+| 符号   | strong/weak  | 存储在的段 (section) |
+| ------ | ------------------------------------- | -- |
+| ext    | 都不是 | |
+| weak1  | strong | COM 段 |
+| weak2  | weak | data 段 |
+| strong | strong | data 段 |
+| main | strong | text 段 |
+
+### 5. ld (链接器) 处理被 ==多次== 定义的 ==全局 (strong)== 符号
+
+![](57.png)
+
+#### 规则1: 不允许 重复定义 ==strong== 符号
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc *.o
+people.o:(.data+0x0): multiple definition of `age'
+animal.o:(.data+0x0): first defined here
+people.o: In function `run':
+people.c:(.text+0x0): multiple definition of `run'
+animal.o:animal.c:(.text+0x0): first defined here
+collect2: error: ld returned 1 exit status
+```
+
+#### 规则2: strong ==覆盖== 同名的 weak 符号
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat people.c
+#include <stdio.h>
+
+void run() {
+	printf("people run\n");
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat animal.c
+#include <stdio.h>
+
+__attribute__((weak)) void run() {
+	printf("animal run\n");
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+extern void run();
+
+int main(int argv, char* argr[])
+{
+	run();
+}
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc *.c
+xzh@xzh-VirtualBox:~/src$ ./a.out
+people run
+```
+
+最终链接的是 people.c 文件中的 **strong** 类型的 run 符号
+
+#### 规则3: 在所有同名的 weak 中选择 ==占用字节数最大== 的
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat people.c
+__attribute__((weak)) char age = '9';
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat animal.c
+≈ int age = 99;
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+extern age;
+
+int main(int argv, char* argr[])
+{
+	printf("age = %d\n", age);
+}
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc *.c
+main.c:3:8: warning: type defaults to 'int' in declaration of 'age' [-Wimplicit-int]
+ extern age;
+        ^~~
+xzh@xzh-VirtualBox:~/src$ ./a.out
+age = 99
+```
+
+最终链接的是 animal.c 文件中的 **占用字节数最大** 的 weak 符号
+
+### 6. 符号的 ==strong== reference (强引用)
+
+#### 1. 代码
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+extern int add(int,int); // 默认声明为【强】引用
+
+int main(int argv, char* argr[])
+{
+	int sum = add(1,2);
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat people.c
+int add(int a, int b) {
+	return a + b;
+}
+```
+
+#### 2. 同时链接 main.o 和 people.o => 编译 ok、链接 ok、运行 ok
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c people.c
+xzh@xzh-VirtualBox:~/src$ ./a.out
+xzh@xzh-VirtualBox:~/src$
+```
+
+#### 3. 只单独链接 main.o => 编译 ok、==链接 error==
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c
+/tmp/cchWaow0.o: In function `main':
+main.c:(.text+0x1a): undefined reference to `add'
+collect2: error: ld returned 1 exit status
+```
+
+### 7. 符号的 ==weak== reference (弱引用)
+
+#### 1. 代码
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat people.c
+int add(int a, int b) {
+	return a + b;
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+__attribute__((weak)) int add(int,int); // 声明为【弱】引用
+
+int main(int argv, char* argr[])
+{
+	int sum = add(1,2);
+}
+```
+
+#### 2. 同时链接 main.o 和 people.o => 编译 ok、链接 ok、运行 ok
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c people.c
+xzh@xzh-VirtualBox:~/src$ ./a.out
+xzh@xzh-VirtualBox:~/src$
+```
+
+
+#### 3. 只单独链接 main.o => 编译 ok、链接 ok、==运行 crash==
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c
+xzh@xzh-VirtualBox:~/src$ ./a.out
+Segmentation fault (core dumped)
+xzh@xzh-VirtualBox:~/src$
+```
+
+运行时会 **崩溃** : Segmentation fault (core dumped)
+
+### 8. 运行时判断 ==weak== reference 是否指向 ==函数== 的内存地址
+
+#### 1. 代码
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat people.c
+int add(int a, int b) {
+	return a + b;
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+__attribute__((weak)) int add(int,int);
+
+int main(int argv, char* argr[])
+{
+	if (add) {
+		int sum = add(1,2);
+	}
+}
+```
+
+#### 2. 同时链接 main.o 和 people.o => 编译 ok、链接 ok、运行 ok
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c people.c
+xzh@xzh-VirtualBox:~/src$ ./a.out
+xzh@xzh-VirtualBox:~/src$
+```
+
+
+#### 3. 只单独链接 main.o => 编译 ok、链接 ok、==运行 ok==
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c
+xzh@xzh-VirtualBox:~/src$ ./a.out
+xzh@xzh-VirtualBox:~/src$
+```
+
+### 9. 编写一个可以 ==选择性链接 pthread 库== 的客户端代码
+
+```c
+#include <stdio.h>
+#include <pthread.h>
+
+int pthread_create(
+  pthread_t *thread,
+	const pthread_attr_t *attr,
+	void *(*start_routine) (void *), 
+  void *arg) __attribute__((weak));
+
+int main(int argv, char* argr[])
+{
+	// printf("%p\n", pthread_create);
+
+	if (pthread_create) {
+		printf("multi-thread\n");
+	} else {
+		printf("single-thread\n");
+	}
+}
+```
+
+![](58.png)
+
+我发现 linux 和 macosx 下的执行效果不一致。
+
+
+
+## 29. ==调试== 信息
 
