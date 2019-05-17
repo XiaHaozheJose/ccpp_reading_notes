@@ -60,11 +60,11 @@
 
 - [01 - 温故而知新](./compile/01/01/README.md)
 
-- [02 - 静态链接 - 01 - 编译与链接](./compile/01/02/README.md)
+- [02 - 编译与链接](./compile/01/02/README.md)
 
-- [02 - 静态链接 - 02 - 目标文件](./compile/01/03/README.md)
+- [03 - 目标文件](./compile/01/03/README.md)
 
-- [03 - 装载与动态链接 - 01 - 可执行文件的装载与进程](./compile/01/06/README.md)
+- [04 - 静态链接](./compile/01/04/README.md)
 
 - [03 - 装载与动态链接 - 02 - 动态链接](./compile/01/07/README.md)
 
