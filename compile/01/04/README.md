@@ -629,7 +629,7 @@ Symbol table '.symtab' contains 67 entries:
 
 最终符号就只存在 **data 和 bss** 两种段，因为 **COM** 中的符号，会被转义到 **bss** 段中。
 
-### 4. 总结下上述 main.c 中变量 对应的 ==符号== 存储位置
+### 4. 总结下上述 main.c 中变量 对应的 ==符号 (elf_Sym)== 存储 ==位置(secion)==
 
 #### 1. 编译 阶段
 
@@ -667,6 +667,899 @@ int main(int argv, char* argr[])
 
 
 
+## 20. gcc `-fno-common` 允许将 ==未初始化全局变量== 
+
+![](35.png)
 
 
+
+
+## 21. C++ 全局对象 构造与析构 实现: 1) `.init` 2) `.fini`
+
+![](36.png)
+
+- 1、linux 系统中的 **可执行文件** 指定的 **入口** 符号一般为 `_start`
+- 2、ld.script (链接脚本文件) 中已经 **写死** 必须要 **链接** `_start` 这个符号
+- 3、而 `_start` 这个符号的 **实现** 由 linux 系统目录下的 `crt*.o` 目标文件 提供
+- 4、当执行 main **之前** ， 先执行 `.init` 段中的 **代码**
+- 5、当执行 main **返回结束** ， 再执行 `.fini` 段中的 **代码**
+
+
+
+## 22. 不同 ==编译器== 生成的 ==目标文件 - 格式== 不同的
+
+![](37.png)
+
+
+
+## 23. 不同 ==编译器== 生成的 ==目标文件== 可以 ==相互链接== 的要求: ABI 兼容
+
+![](38.png)
+
+
+- 1、ABI 包含的内容:
+  - 1) 目标文件的 **文件格式**
+  - 2) **符号修饰** 算法 (C++ 函数重载 处理方式)
+  - 3) 变的 **内存分布** 算法
+  - 4) **函数调用** 方式
+
+- 2、结论: 如果想让 不同 ==编译器== 生成的 ==目标文件== 可以 ==相互链接== ，那么必须保证 **不同编译环境** 下的 **ABI 必须都兼容**
+
+
+
+## 24. ==AP(源码)I== 级别的接口 vs ==AB(二进制)I== 级别的接口
+
+![](39.png)
+
+![](40.png)
+
+
+
+## 25. 影响 ==二进制 ABI== 主要因素，1) ==编译器== 2) ==操作系统==
+
+![](41.png)
+
+- 1、编译器: **生成** 二进制 文件
+- 2、操作系统: **加载、运行 (分配内存空间)** 二进制 文件
+
+
+
+## 26. ==C++ 特性== 使得 ==编译器 ABI== 更加难以 兼容
+
+![](42.png)
+
+![](43.png)
+
+
+
+## 27. ==C++ ABI== (二进制) 兼容性 ==一直没有解决==
+
+### 1. 一直以来就很差
+
+![](44.png)
+
+### 2. 到现在也没有解决
+
+![](45.png)
+
+
+
+## 28. 每一种语言 都会提供对应的 语言库 (Language Lirabry)
+
+![](46.png)
+
+
+
+## 29. 静态库: 很多个 ==目标文件== 打包压缩在一起
+
+### 1. 多个 C 文件
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat add.c
+int add(int a, int b) {
+	return a + b;
+}
+```
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat sub.c
+int sub(int a, int b) {
+	return a - b;
+}
+```
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat mul.c
+int mul(int a, int b) {
+	return a * b;
+}
+```
+
+### 2. 各自 编译成 目标文件
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c add.c
+xzh@xzh-VirtualBox:~/src$ gcc -c sub.c
+xzh@xzh-VirtualBox:~/src$ gcc -c mul.c
+xzh@xzh-VirtualBox:~/src$
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ ls *.o
+add.o  mul.o  sub.o
+xzh@xzh-VirtualBox:~/src$
+```
+
+### 3. ar -rcs 将多个 目标文件 打包在一起为 libMath.a
+
+```
+xzh@xzh-VirtualBox:~/src$ ar -rcs libMath.a add.o sub.o mul.o
+```
+
+### 4. file libMath.a
+
+```
+xzh@xzh-VirtualBox:~/src$ ls
+add.c  add.o  libMath.a  main.c  mul.c  mul.o  sub.c  sub.o
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ file libMath.a
+libMath.a: current ar archive
+```
+
+### 5. ar -t 显示 libMath.a 包含的所有对象文件(.o文件)
+
+```
+xzh@xzh-VirtualBox:~/src$ ar -t libMath.a
+add.o
+sub.o
+mul.o
+```
+
+### 6. ar -tv 按大小 显示 libMath.a 包含的所有对象文件(.o文件)
+
+```
+xzh@xzh-VirtualBox:~/src$ ar -tv libMath.a
+rw-r--r-- 0/0   1232 Jan  1 03:00 1970 add.o
+rw-r--r-- 0/0   1232 Jan  1 03:00 1970 sub.o
+rw-r--r-- 0/0   1232 Jan  1 03:00 1970 mul.o
+```
+
+### 7. ar -d 从 libMath.a ==删除== 某一个 对象文件(.o文件)
+
+```
+xzh@xzh-VirtualBox:~/src$ ar -d libMath.a add.o
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ ar -t libMath.a
+sub.o
+mul.o
+```
+
+在 libMath.a 中只剩下 **2个** 目标文件。
+
+### 8. ar -r 将某一个 对象文件(.o文件) ==添加到== libMath.a
+
+#### 1. ar -r libMath.a b.o
+
+```makefile
+all:
+	@rm libMath.a
+	@ar rcs libMath.a sub.o mul.o
+  @ar -t libMath.a
+  @echo '---------------------'
+	@ar -r libMath.a add.o
+	@ar -t libMath.a
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ make
+sub.o
+mul.o
+---------------------
+sub.o
+mul.o
+add.o
+```
+
+直接将 add.o 追加到 libMath.a 末尾
+
+#### 2. ar -ra sub.o libMath.a add.o
+
+```makefile
+all:
+	@rm libMath.a
+	@ar rcs libMath.a sub.o mul.o
+	@ar -t libMath.a
+	@echo '---------------------'
+	@ar -ra sub.o libMath.a add.o
+	@ar -t libMath.a
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ make
+sub.o
+mul.o
+---------------------
+sub.o
+add.o
+mul.o
+```
+
+- add.o 被添加到了 已经存在于 libMath.a 中的 **sub.o 后面**
+- 也可以直接传入 **源文件** : 例如"ar -ra a.c liba.a b.c"表示将b.c加入liba.a并放在已有成员a.c之后
+
+#### 3. ar -rb sub.o libMath.a add.o
+
+```makefile
+all:
+	@rm libMath.a
+	@ar rcs libMath.a sub.o mul.o
+	@ar -t libMath.a
+	@echo '---------------------'
+	@ar -rb sub.o libMath.a add.o
+	@ar -t libMath.a
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ make
+sub.o
+mul.o
+---------------------
+add.o
+sub.o
+mul.o
+```
+
+与上相反，将 add.o 被添加到了 已经存在于 libMath.a 中的 **sub.o 前面**
+
+#### 4. ar -ri sub.o libMath.a add.o
+
+```makefile
+all:
+	@rm libMath.a
+	@ar rcs libMath.a sub.o mul.o
+	@ar -t libMath.a
+	@echo '---------------------'
+	@ar -ri sub.o libMath.a add.o
+	@ar -t libMath.a
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ make
+sub.o
+mul.o
+---------------------
+add.o
+sub.o
+mul.o
+```
+
+-ri 等价于 -rb
+
+### 9. ar -x 从 libMath.a 中分离出 add.o
+
+```
+xzh@xzh-VirtualBox:~/src$ ls *.o
+ls: cannot access '*.o': No such file or directory
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ ar -x libMath.a add.o
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ ls *.o
+add.o
+```
+
+
+
+## 30. 查看 libxx.a ==符号表==
+
+### 1. objdump -t libxx.a
+
+```
+xzh@xzh-VirtualBox:~/src$ objdump -t libMath.a
+In archive libMath.a:
+
+add.o:     file format elf64-x86-64
+
+SYMBOL TABLE:
+0000000000000000 l    df *ABS*	0000000000000000 add.c
+0000000000000000 l    d  .text	0000000000000000 .text
+0000000000000000 l    d  .data	0000000000000000 .data
+0000000000000000 l    d  .bss	0000000000000000 .bss
+0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+0000000000000000 l    d  .comment	0000000000000000 .comment
+0000000000000000 g     F .text	0000000000000014 add
+
+
+
+sub.o:     file format elf64-x86-64
+
+SYMBOL TABLE:
+0000000000000000 l    df *ABS*	0000000000000000 sub.c
+0000000000000000 l    d  .text	0000000000000000 .text
+0000000000000000 l    d  .data	0000000000000000 .data
+0000000000000000 l    d  .bss	0000000000000000 .bss
+0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+0000000000000000 l    d  .comment	0000000000000000 .comment
+0000000000000000 g     F .text	0000000000000012 sub
+
+
+
+mul.o:     file format elf64-x86-64
+
+SYMBOL TABLE:
+0000000000000000 l    df *ABS*	0000000000000000 mul.c
+0000000000000000 l    d  .text	0000000000000000 .text
+0000000000000000 l    d  .data	0000000000000000 .data
+0000000000000000 l    d  .bss	0000000000000000 .bss
+0000000000000000 l    d  .note.GNU-stack	0000000000000000 .note.GNU-stack
+0000000000000000 l    d  .eh_frame	0000000000000000 .eh_frame
+0000000000000000 l    d  .comment	0000000000000000 .comment
+0000000000000000 g     F .text	0000000000000013 mul
+```
+
+- 1、add.o: -- `.text` -- add 函数符号
+- 2、sub.o: -- `.text` -- sub 函数符号
+- 3、mul.o: -- `.text` -- mul 函数符号
+
+### 2. readelf -s
+
+```
+xzh@xzh-VirtualBox:~/src$ readelf -s libMath.a
+
+File: libMath.a(add.o)
+
+Symbol table '.symtab' contains 9 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS add.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     8: 0000000000000000    20 FUNC    GLOBAL DEFAULT    1 add
+
+File: libMath.a(sub.o)
+
+Symbol table '.symtab' contains 9 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS sub.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     8: 0000000000000000    18 FUNC    GLOBAL DEFAULT    1 sub
+
+File: libMath.a(mul.o)
+
+Symbol table '.symtab' contains 9 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS mul.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    2
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     8: 0000000000000000    19 FUNC    GLOBAL DEFAULT    1 mul
+```
+
+打印结果比 `objdump -t libxx.a` 更加清晰。
+
+
+
+## 31. `gcc -fno-builtin` 禁止函数优化
+
+### 1. printf("Hello World!\n");
+
+#### 1. main.c
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+int main(int argv, char* argr[])
+{
+	printf("Hello World!\n");
+}
+```
+
+#### 2. 链接的是 puts
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c main.c
+xzh@xzh-VirtualBox:~/src$ readelf -s main.o
+
+Symbol table '.symtab' contains 12 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS main.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    7
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    8
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     9: 0000000000000000    34 FUNC    GLOBAL DEFAULT    1 main
+    10: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND puts
+```
+
+### 2. printf("age = %d\n", 99);
+
+#### 1. main.c
+
+```c
+//xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+int main(int argv, char* argr[])
+{
+	// printf("Hello World!\n");
+	printf("age = %d\n", 99);
+}
+```
+
+#### 2. 链接的是 printf
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c main.c
+xzh@xzh-VirtualBox:~/src$ readelf -s main.o
+
+Symbol table '.symtab' contains 12 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS main.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    7
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    8
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     9: 0000000000000000    44 FUNC    GLOBAL DEFAULT    1 main
+    10: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printf
+```
+
+此时链接的是 **printf** 函数符号
+
+### 3. `-fno-builtin` 禁止函数优化 printf("Hello World!\n");
+
+#### 1. main.c
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat main.c
+#include <stdio.h>
+
+int main(int argv, char* argr[])
+{
+	printf("Hello World!\n");
+	// printf("age = %d\n", 99);
+}
+```
+
+#### 2. 链接的是 printf
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c main.c -fno-builtin
+xzh@xzh-VirtualBox:~/src$ readelf -s main.o
+
+Symbol table '.symtab' contains 12 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND
+     1: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS main.c
+     2: 0000000000000000     0 SECTION LOCAL  DEFAULT    1
+     3: 0000000000000000     0 SECTION LOCAL  DEFAULT    3
+     4: 0000000000000000     0 SECTION LOCAL  DEFAULT    4
+     5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5
+     6: 0000000000000000     0 SECTION LOCAL  DEFAULT    7
+     7: 0000000000000000     0 SECTION LOCAL  DEFAULT    8
+     8: 0000000000000000     0 SECTION LOCAL  DEFAULT    6
+     9: 0000000000000000    39 FUNC    GLOBAL DEFAULT    1 main
+    10: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    11: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printf
+```
+
+
+
+## 32. 手动使用 ld 链接 目标文件
+
+### 1. 不使用 C 标准库
+
+#### 1. C 文件
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat add.c
+int add(int a, int b) {
+	return a + b;
+}
+```
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat sub.c
+int sub(int a, int b) {
+	return a - b;
+}
+```
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat main.c
+extern int add(int,int);
+extern int sub(int,int);
+
+int main(int argv, char* argr[])
+{
+	add(1,2);
+	sub(2,1);
+}
+```
+
+#### 2. 各自 编译 生成 目标文件
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -c add.c sub.c main.c
+```
+
+#### 3. ld 链接 add.o sub.o main.o
+
+```c
+xzh@xzh-VirtualBox:~/src$ ld add.o sub.o main.o
+ld: warning: cannot find entry symbol _start; defaulting to 00000000004000b0
+```
+
+#### 4. 报错找不到 `_start` 符号
+
+```c
+ld: warning: cannot find entry symbol _start; defaulting to 00000000004000b0
+```
+
+无法找到 **入口** 符号 `_start`
+
+### 2. 不使用 C 标准库
+
+#### 1. C 文件
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat main.c
+int main(int argv, char* argr[])
+{
+	printf("1+1=%d\n", 2);
+}
+```
+
+#### 2. 编译 生成 目标文件
+
+```c
+main.c: In function 'main':
+main.c:3:2: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  printf("1+1=%d\n", 2);
+  ^~~~~~
+main.c:3:2: warning: incompatible implicit declaration of built-in function 'printf'
+main.c:3:2: note: include '<stdio.h>' or provide a declaration of 'printf'
+```
+
+会有警告，提示添加 `<stdio.h>` 头文件来引入 printf 函数的 **声明**
+
+#### 3. ld 链接 main.o
+
+```c
+xzh@xzh-VirtualBox:~/src$ ld main.o
+ld: warning: cannot find entry symbol _start; defaulting to 00000000004000b0
+main.o: In function `main':
+main.c:(.text+0x21): undefined reference to `printf'
+```
+
+#### 4. 报错找不到 `_start` 和 printf 2个符号
+
+- 1) ld: warning: cannot find entry symbol _start; defaulting to 00000000004000b0
+- 2) main.c:(.text+0x21): undefined reference to `printf'
+
+### 3. gcc 入口工具，完成很多 ==隐藏细节==
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c
+main.c: In function 'main':
+main.c:3:2: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  printf("1+1=%d\n", 2);
+  ^~~~~~
+main.c:3:2: warning: incompatible implicit declaration of built-in function 'printf'
+main.c:3:2: note: include '<stdio.h>' or provide a declaration of 'printf'
+```
+
+```
+xzh@xzh-VirtualBox:~/src$ ./a.out
+1+1=2
+```
+
+- 虽然 **编译** 时仍然有警告
+- 但是最终 **链接** 生成的 可执行文件，正常运行
+
+
+
+## 33. gcc -static 指定 ==静态== 方式 进行 ==链接==
+
+### 1. main.c
+
+```c
+// xzh@xzh-VirtualBox:~/src$ cat main.c
+int main(int argv, char* argr[])
+{
+	printf("age = %d\n", 99);
+}
+```
+
+### 2. gcc main.c 生成可执行文件
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c
+main.c: In function 'main':
+main.c:3:2: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  printf("Hello World!\n");
+  ^~~~~~
+main.c:3:2: warning: incompatible implicit declaration of built-in function 'printf'
+main.c:3:2: note: include '<stdio.h>' or provide a declaration of 'printf'
+```
+
+查看 a.out 文件大小
+
+```
+xzh@xzh-VirtualBox:~/src$ ll | grep 'a.out'
+-rwxrwxr-x  1 xzh xzh 8296 May 20 15:47 a.out*
+```
+
+a.out 文件的大小为 **8296** 字节。
+
+### 3. gcc -static main.c 生成可执行文件
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc -static main.c
+main.c: In function 'main':
+main.c:3:2: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  printf("Hello World!\n");
+  ^~~~~~
+main.c:3:2: warning: incompatible implicit declaration of built-in function 'printf'
+main.c:3:2: note: include '<stdio.h>' or provide a declaration of 'printf'
+```
+
+查看 a.out 文件大小
+
+```
+xzh@xzh-VirtualBox:~/src$ ll | grep 'a.out'
+-rwxrwxr-x  1 xzh xzh 844704 May 20 15:48 a.out*
+```
+
+- a.out 文件的大小为 **844704** 字节
+- 明显 **844704** 字节 比上面的 **gcc main.c** 生成的 a.out 大小 **8296** 字节 **大的多**
+
+### 4. 两种 ==链接== 方式
+
+- 1) **静态** 链接
+- 2) **动态** 链接
+
+
+
+## 34. ==静态== 链接
+
+### 1. 将所有的 目标文件、静态库(目标文件集合) 打包在一起，链接为 可执行文件
+
+![](47.png)
+
+### 2. readelf -s a.out 查看 符号表 中的 printf 符号
+
+```
+xzh@xzh-VirtualBox:~/src$ readelf -s a.out | grep 'printf'
+   ...........
+   731: 000000000040f660   192 FUNC    GLOBAL DEFAULT    6 printf
+   ...........
+```
+
+printf 符号，出现在 **a.out 符号表** 中记录的 **6号段中**
+
+### 3. readelf -S a.out 查看 所有的 段
+
+```
+xzh@xzh-VirtualBox:~/src$ readelf -S a.out
+There are 33 section headers, starting at offset 0xcdb80:
+
+Section Headers:
+  [Nr] Name              Type             Address           Offset
+       Size              EntSize          Flags  Link  Info  Align
+  [ 0]                   NULL             0000000000000000  00000000
+       0000000000000000  0000000000000000           0     0     0
+  [ 1] .note.ABI-tag     NOTE             0000000000400190  00000190
+       0000000000000020  0000000000000000   A       0     0     4
+  [ 2] .note.gnu.build-i NOTE             00000000004001b0  000001b0
+       0000000000000024  0000000000000000   A       0     0     4
+readelf: Warning: [ 3]: Link field (0) should index a symtab section.
+  [ 3] .rela.plt         RELA             00000000004001d8  000001d8
+       0000000000000228  0000000000000018  AI       0    20     8
+  [ 4] .init             PROGBITS         0000000000400400  00000400
+       0000000000000017  0000000000000000  AX       0     0     4
+  [ 5] .plt              PROGBITS         0000000000400418  00000418
+       00000000000000b8  0000000000000000  AX       0     0     8
+  [ 6] .text             PROGBITS         00000000004004d0  000004d0
+       000000000008f530  0000000000000000  AX       0     0     16
+  ...........
+```
+
+**6号段** 就是 `.text` a.out 代码段。
+
+### 4. 总结 静态 链接
+
+- 1、将所有的 目标文件、静态库文件(目标文件集合) **链接** 在一起，生成 **可执行文件**
+- 2、可执行文件的 **体积** 会 **非常大**
+- 3、gcc **默认** 使用 **动态** 链接
+- 4、当使用 `gcc -statis` 指定为 **静态** 链接
+
+
+
+## 35. gcc `--verbose` 打印整个 编译、链接 过程
+
+### 1. 32. 中的 例1 整个过程
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c add.c sub.c --verbose
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/7/lto-wrapper
+OFFLOAD_TARGET_NAMES=nvptx-none
+OFFLOAD_TARGET_DEFAULT=1
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 7.3.0-27ubuntu1~18.04' --with-bugurl=file:///usr/share/doc/gcc-7/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++ --prefix=/usr --with-gcc-major-version-only --program-suffix=-7 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-libmpx --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 7.3.0 (Ubuntu 7.3.0-27ubuntu1~18.04)
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/7/cc1 -quiet -v -imultiarch x86_64-linux-gnu main.c -quiet -dumpbase main.c -mtune=generic -march=x86-64 -auxbase main -version -fstack-protector-strong -Wformat -Wformat-security -o /tmp/ccsCpzKa.s
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/7/../../../../x86_64-linux-gnu/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/x86_64-linux-gnu/7/include
+ /usr/local/include
+ /usr/lib/gcc/x86_64-linux-gnu/7/include-fixed
+ /usr/include/x86_64-linux-gnu
+ /usr/include
+End of search list.
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+Compiler executable checksum: c8081a99abb72bbfd9129549110a350c
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ as -v --64 -o /tmp/ccHKtMMk.o /tmp/ccsCpzKa.s
+GNU assembler version 2.30 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.30
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/7/cc1 -quiet -v -imultiarch x86_64-linux-gnu add.c -quiet -dumpbase add.c -mtune=generic -march=x86-64 -auxbase add -version -fstack-protector-strong -Wformat -Wformat-security -o /tmp/ccsCpzKa.s
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/7/../../../../x86_64-linux-gnu/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/x86_64-linux-gnu/7/include
+ /usr/local/include
+ /usr/lib/gcc/x86_64-linux-gnu/7/include-fixed
+ /usr/include/x86_64-linux-gnu
+ /usr/include
+End of search list.
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+Compiler executable checksum: c8081a99abb72bbfd9129549110a350c
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ as -v --64 -o /tmp/ccyfgKSu.o /tmp/ccsCpzKa.s
+GNU assembler version 2.30 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.30
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/7/cc1 -quiet -v -imultiarch x86_64-linux-gnu sub.c -quiet -dumpbase sub.c -mtune=generic -march=x86-64 -auxbase sub -version -fstack-protector-strong -Wformat -Wformat-security -o /tmp/ccsCpzKa.s
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/7/../../../../x86_64-linux-gnu/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/x86_64-linux-gnu/7/include
+ /usr/local/include
+ /usr/lib/gcc/x86_64-linux-gnu/7/include-fixed
+ /usr/include/x86_64-linux-gnu
+ /usr/include
+End of search list.
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+Compiler executable checksum: c8081a99abb72bbfd9129549110a350c
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ as -v --64 -o /tmp/cc1mvi2E.o /tmp/ccsCpzKa.s
+GNU assembler version 2.30 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.30
+COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/
+LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/7/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/7/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/cc4StGcP.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/7 -L/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/7/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/7/../../.. /tmp/ccHKtMMk.o /tmp/ccyfgKSu.o /tmp/cc1mvi2E.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/7/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+```
+
+### 2. 32. 中的 例2 整个过程
+
+```
+xzh@xzh-VirtualBox:~/src$ gcc main.c --verbose
+Using built-in specs.
+COLLECT_GCC=gcc
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/7/lto-wrapper
+OFFLOAD_TARGET_NAMES=nvptx-none
+OFFLOAD_TARGET_DEFAULT=1
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 7.3.0-27ubuntu1~18.04' --with-bugurl=file:///usr/share/doc/gcc-7/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++ --prefix=/usr --with-gcc-major-version-only --program-suffix=-7 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-libmpx --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 7.3.0 (Ubuntu 7.3.0-27ubuntu1~18.04)
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/7/cc1 -quiet -v -imultiarch x86_64-linux-gnu main.c -quiet -dumpbase main.c -mtune=generic -march=x86-64 -auxbase main -version -fstack-protector-strong -Wformat -Wformat-security -o /tmp/cc07bE3X.s
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/7/../../../../x86_64-linux-gnu/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /usr/lib/gcc/x86_64-linux-gnu/7/include
+ /usr/local/include
+ /usr/lib/gcc/x86_64-linux-gnu/7/include-fixed
+ /usr/include/x86_64-linux-gnu
+ /usr/include
+End of search list.
+GNU C11 (Ubuntu 7.3.0-27ubuntu1~18.04) version 7.3.0 (x86_64-linux-gnu)
+	compiled by GNU C version 7.3.0, GMP version 6.1.2, MPFR version 4.0.1, MPC version 1.1.0, isl version isl-0.19-GMP
+
+GGC heuristics: --param ggc-min-expand=97 --param ggc-min-heapsize=126135
+Compiler executable checksum: c8081a99abb72bbfd9129549110a350c
+main.c: In function 'main':
+main.c:3:2: warning: implicit declaration of function 'printf' [-Wimplicit-function-declaration]
+  printf("1+1=%d\n", 2);
+  ^~~~~~
+main.c:3:2: warning: incompatible implicit declaration of built-in function 'printf'
+main.c:3:2: note: include '<stdio.h>' or provide a declaration of 'printf'
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ as -v --64 -o /tmp/ccFSdKKD.o /tmp/cc07bE3X.s
+GNU assembler version 2.30 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.30
+COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/
+LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/7/:/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/7/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/7/../../../:/lib/:/usr/lib/
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccMORHsj.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --sysroot=/ --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/7 -L/usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/7/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/7/../../.. /tmp/ccFSdKKD.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/7/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/7/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
+```
+
+### 3. 链接了很多的 系统提供 目标文件、动态库、静态库 (gcc -static)
+
+![](48.png)
+
+
+
+## 36. ==一个目标文件== 中只包含 ==一个函数==
+
+![](49.png)
 
