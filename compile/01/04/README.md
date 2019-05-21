@@ -1561,5 +1561,293 @@ COLLECT_GCC_OPTIONS='-v' '-mtune=generic' '-march=x86-64'
 
 ## 36. ==一个目标文件== 中只包含 ==一个函数==
 
+![](51.png)
+
 ![](49.png)
+
+
+
+## 37. 控制 ==链接 过程==
+
+![](50.png)
+
+
+
+## 38. ==链接器== 一般提供 三种方式 控制 ==链接过程==
+
+![](52.png)
+
+![](53.png)
+
+----
+
+- 1、ld 链接器 参数
+- 2、链接 指令
+- 3、链接 脚本
+
+
+
+## 40. 链接器 默认 ==链接脚本==
+
+![](54.png)
+
+
+
+## 41. 链接时，==指定== 自己的 ==链接脚本==
+
+![](55.png)
+
+
+
+## 42. ==不依赖 libc== 实现 hello world，
+
+### 1. C 源文件 (==没有 main 函数==)
+
+![](56.png)
+
+### 2. print() 函数: 直接使用 ==系统调用== ，绕过 ==libc库==
+
+```c
+char* str = "Hello World!\n"; // 13 bytes
+
+void myprintf()
+{
+  __asm__ __volatile__
+  (
+    "movl $4, %eax\n\t"   // 设置 sys_write() 系统调用号 等于 4 => 打印内容到终端屏幕
+    "movl $0, %ebx\n\t"   // 写入的文件 fd=1 => stdout 标准输出
+    "movl %0, %ecx\n\t"   // 写入数据的内存起始地址
+    "movl $13, %edx\n\t"  // 写入数据的长度
+    "int $0x80"           // 发出中断，触发 系统调用
+    :
+    : "r" (str)
+    : "edx", "ecx", "ebx"
+    
+  );
+}
+```
+
+### 3. 上面其实就是直接调用 linux 提供的 系统函数 write()
+
+![](57.png)
+
+![](58.png)
+
+### 4. exit() 函数: 同上
+
+```c
+void exit()
+{
+  asm
+  (
+    "movl $42, %%ebx\n\t" // 返回值
+    "movl $1, %%eax\n\t"  // 设置 sys_write() 系统调用号 等于 1 => 退出进程
+    "int $0x80"           // 发出中断，触发 系统调用
+  );
+}
+```
+
+### 5. 通过 ld 命令行，完成普通的 编译、链接
+
+![](59.png)
+
+### 6. elf 可执行文件 4个段，可 ==合并== 性
+
+![](60.png)
+
+
+
+## 43. ld 链接脚本 : 控制所有的 ==段(section)== 如何 ==合并== 
+
+### 1. 图示
+
+![](61.png)
+
+### 2. ==ld 脚本== 控制 ==链接过程==
+
+- 1、输入 : 所有 **将要合并** 的 **段(section)**
+- 2、输出 : 指定的多个 **段(section)** 最终 **合并到** 的 **段(section)**
+- 3、链接过程 完成:
+  - 1) 哪一些段进行 **合并**
+  - 2) 哪一些段 **丢弃**
+  - 3) 最终 **合并** 成的 段 名字、属性、装载地址
+
+### 3. 如上 ld 脚本 语法规则
+
+![](62.png)
+
+![](63.png)
+
+### 4. ld 使用自定义 链接脚本文件，使用 ==objdump== 查看生成的可执行文件中 ==只有1个段==
+
+![](64.png)
+
+### 5. 但是用 ==readelf== 查看生成的可执行文件中还有 ==其他三个段==
+
+![](65.png)
+
+### 6. 默认 ld 链接脚本，会输出三个段
+
+| 段名 | 全称 | 中文名 |
+| ---- | ---- | ------ |
+| `.shstrtab` | section header string table | **段表** 类型的 **字符串表** |
+| `.symtab` | symbol table | **符号表** (记录每一个 **符号** 的 **类型、所属段、绑定类型**) |
+| `.strtab` | string table | **普通** 类型的 **字符串表** |
+
+### 6. 如上三个段的 ==可选性==
+
+| 段名 | 全称 | 可选性 |
+| ---- | ---- | ------ |
+| `.shstrtab` | **section header** string table | No |
+| `.symtab` | **symbol** table | Yes |
+| `.strtab` | **string** table | Yes |
+
+### 7. 去除 ==符号表== 方式
+
+- 1、**ld -s** 参数，告诉 **链接器** 在链接时，不要将 **符号表(段)** 写入到 可执行文件 中
+- 2、**strip** 剔除 可执行文件 中的 **符号表(段)**
+
+### 8. 一个最小的 可执行文件 45 字节
+
+![](66.png)
+
+
+
+## 44. ld 链接脚本 ==语法==
+
+### 1. 指令 (命令)
+
+![](67.png)
+
+![](68.png)
+
+----
+
+| 命令 | 作用 |
+| ---- | ---- |
+| entry(符号) | 用户程序的 入口符号 |
+| intput(目标文件) | 指定要链接的 **目标文件** |
+| startup(文件名)) | 指定 链接过程 中的 **第一个** 目标文件 |
+| search_dir(路径) | 指定 二进制库的 **头文件** 搜索路径 |
+| provide(符号) | 在链接脚本中 **定义** 一个符号，可以在 用户程序 中访问 |
+
+### 2. 配置 ==entry== 入口符号
+
+```c
+/* Entry Point */
+ENTRY(Reset_Handler)
+```
+
+### 3. 设置 ==Runtime== 大小 (堆栈)
+
+```c
+/* Highest address of the user mode stack */
+_estack = 0x20030000;    /* end of 192K RAM */
+
+/* Generate a link error if heap and stack don't fit into RAM */
+_Min_Heap_Size = 0;      /* required amount of heap  */
+_Min_Stack_Size = 0x400; /* required amount of stack */
+```
+
+### 4. 配置 ==存储== 区域
+
+```c
+/* Specify the memory areas */
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 2048K
+  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 192K
+  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
+  CCMRAM (rw)     : ORIGIN = 0x10000000, LENGTH = 64K
+}
+```
+
+### 5. 定义 ==SECTIONS== 起始 (表明后续都是 ==段==）
+
+![](69.png)
+
+### 6. 添加 `.text` section (必选)
+
+```c
+.text :
+{
+  . = ALIGN(4);
+  *(.text)           /* .text sections (code) */
+  *(.text*)          /* .text* sections (code) */
+  *(.glue_7)         /* glue arm to thumb code */
+  *(.glue_7t)        /* glue thumb to arm code */
+  *(.eh_frame)
+
+  KEEP (*(.init))
+  KEEP (*(.fini))
+
+  . = ALIGN(4);
+  _etext = .;        /* define a global symbols at end of code */
+} >FLASH
+```
+
+![](70.png)
+
+![](71.png)
+
+### 7. 添加 `.rodata` section (可选)
+
+```c
+/* Constant data goes into FLASH */
+.rodata :
+{
+  . = ALIGN(4);
+  *(.rodata)         /* .rodata sections (constants, strings, etc.) */
+  *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
+  . = ALIGN(4);
+} >FLASH
+```
+
+### 8. 添加 `.data` section (必选)
+
+```c
+/* Initialized data sections goes into RAM, load LMA copy after code */
+.data : 
+{
+  . = ALIGN(4);
+  _sdata = .;        /* create a global symbol at data start */
+  *(.data)           /* .data sections */
+  *(.data*)          /* .data* sections */
+
+  . = ALIGN(4);
+  _edata = .;        /* define a global symbol at data end */
+} >RAM AT> FLASH
+```
+
+### 9. 添加 `.bss` section (必选)
+
+```c
+.bss :
+{
+  /* This is used by the startup in order to initialize the .bss secion */
+  _sbss = .;         /* define a global symbol at bss start */
+  __bss_start__ = _sbss;
+  *(.bss)
+  *(.bss*)
+  *(COMMON)
+
+  . = ALIGN(4);
+  _ebss = .;         /* define a global symbol at bss end */
+  __bss_end__ = _ebss;
+} >RAM
+```
+
+### 10. `/DISCARD/` section (可选, 被 ==丢弃== 段，不会输出到 ==输出文件== 中)
+
+```c
+/DISCARD/ : {
+  xxx.o ( * )
+  libA.a ( * )
+  libB.a ( * )
+}
+```
+
+表示丢弃 xxx.o、libA.a、libB.a 中所有的的段。
+
+
 

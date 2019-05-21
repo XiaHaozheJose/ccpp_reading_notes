@@ -40,7 +40,7 @@
 
 
 
-## 6. elf File ==Header==
+## 6. elf ==Header==
 
 ![](07.png)
 
@@ -572,7 +572,7 @@ Symbol table '.symtab' contains 12 entries:
 
 
 
-## 15. 其他的 section 段
+## 15. 其他 section 段
 
 ![](15.png)
 
